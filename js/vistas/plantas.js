@@ -1,16 +1,17 @@
 /* Pestaña Mis plantas (Plantas / Sitios), ficha de cada planta y alta de plantas. */
-import { $, $$, esc, uid, hoy, sumar, fechaLarga, haceTxt, datos, planta, sitio, especie, grupo, cat, buscarEspecies, guardarPlanta, borrarPlanta, recordatoriosIniciales, vencimiento, completar, intervaloRiego, intervaloTxt, fotos, reducirImagen, elegirFoto, store, activarImagenes } from '../core.js';
+import { $, $$, esc, uid, hoy, sumar, fechaLarga, haceTxt, datos, planta, sitio, especie, pauta, grupo, cat, buscarEspecies, guardarPlanta, borrarPlanta, recordatoriosIniciales, vencimiento, completar, intervaloRiego, intervaloTxt, fotos, reducirImagen, elegirFoto, store, activarImagenes } from '../core.js';
 import { TIPOS } from '../contenido.js';
 import { rutas, ir, hoja, aviso, menu, confirmar, cabRaiz, cabDetalle, segmentado, tarjetaPlanta, filaEspecie, chips, chatHTML, activarChat, repintar, ico, LUZ_ICONO, DIF_TXT } from '../ui.js';
 import { guiaEspecie } from './guia.js';
 import { identificarConFoto } from './buscar.js';
+import { coleccionLocal } from '../importar.js';
 
 let pestana = 'plantas';
 
 rutas.plantas = () => {
   const plantas = datos.plantas, sitios = datos.sitios;
   const cuerpo = pestana === 'plantas'
-    ? (plantas.length ? `<div class="lista-plantas">${plantas.map(tarjetaPlanta).join('')}</div>` : `<div class="vacio"><h3>Tu jardín está vacío</h3><p>Añade tus plantas para tener sus cuidados y recordatorios a mano.</p><button class="btn" data-nueva>${ico('mas')} Añadir planta</button></div>`)
+    ? (plantas.length ? `<div class="lista-plantas">${plantas.map(tarjetaPlanta).join('')}</div>` : `<div class="vacio"><h3>Tu jardín está vacío</h3><p>Añade tus plantas para tener sus cuidados y recordatorios a mano.</p><button class="btn" data-nueva>${ico('mas')} Añadir planta</button>${coleccionLocal() ? `<a class="enlace" href="#/ajustes">Copiar mis ${coleccionLocal().plantas.length} plantas de Plantitus ${ico('chevron')}</a>` : ''}</div>`)
     : `<div class="lista-sitios">${sitios.map((s) => {
       const ps = plantas.filter((p) => p.sitio === s.id);
       return `<a class="tarjeta-sitio" href="#/sitio/${esc(s.id)}">
@@ -222,10 +223,11 @@ rutas.planta = (id, seccion, tipoAbrir) => {
   const s = sitio(p.sitio);
   const sec = seccion || seccionPlanta[id] || 'cuidados';
   seccionPlanta[id] = sec;
+  const pa = pauta(p);
   const recs = Object.entries(TIPOS).map(([k, t]) => {
     const r = p.recordatorios[k] || { on: false };
     const f = r.on ? vencimiento(p, k) : null;
-    const cada = k === 'riego' && !r.cada ? intervaloTxt(p) : k === 'abono' && !r.cada && e ? (e.abono ? `Cada ${e.abono} semanas en temporada` : 'Sin abono') : `Cada ${r.cada || t.cada} días`;
+    const cada = k === 'riego' && !r.cada ? intervaloTxt(p) : k === 'abono' && !r.cada && pa ? (pa.abono ? `Cada ${pa.abono} semanas en temporada` : 'Sin abono') : `Cada ${r.cada || t.cada} días`;
     return `<button class="fila-rec ${r.on ? 'on' : ''}" data-rec="${k}">
       <span class="tipo-ico" style="--c:${t.color}">${ico(t.icono)}</span>
       <span class="txt"><strong>${t.nombre}</strong><span>${r.on ? esc(cada) : 'Desactivado'}</span></span>
@@ -303,7 +305,7 @@ function anotar(id) {
 }
 
 function editarRecordatorio(id, tipo) {
-  const p = planta(id), e = especie(p.especie), t = TIPOS[tipo];
+  const p = planta(id), e = pauta(p), t = TIPOS[tipo];
   const r = p.recordatorios[tipo] ||= { on: false, cada: null, ultimo: hoy() };
   const auto = (tipo === 'riego' || tipo === 'abono') && e;
   const autoTxt = tipo === 'riego' && e ? `Automático según la época (ahora cada ${intervaloRiego(e) || '—'} días)` : tipo === 'abono' && e ? (e.abono ? `Automático: cada ${e.abono} semanas en temporada` : 'Automático: esta especie no se abona') : '';
@@ -321,7 +323,7 @@ function editarRecordatorio(id, tipo) {
   const calcular = () => {
     const fd = new FormData(form);
     const prueba = JSON.parse(JSON.stringify(p));
-    prueba.recordatorios[tipo] = { on: true, cada: !auto || modo === 'fija' ? Math.max(1, +fd.get('cada') || t.cada) : null, ultimo: fd.get('ultimo') || hoy() };
+    prueba.recordatorios[tipo] = { ...(r.pauta ? { pauta: r.pauta } : {}), on: true, cada: !auto || modo === 'fija' ? Math.max(1, +fd.get('cada') || t.cada) : null, ultimo: fd.get('ultimo') || hoy() };
     const f = vencimiento(prueba, tipo);
     $('[data-sig]', h.el).textContent = fd.get('on') ? (f ? fechaLarga(f) : 'sin fecha (fuera de temporada)') : 'desactivado';
     return prueba.recordatorios[tipo];

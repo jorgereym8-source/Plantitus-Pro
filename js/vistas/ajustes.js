@@ -1,6 +1,7 @@
 /* Ajustes: asistente con IA, ubicación, catálogo propio, calendario y copia de seguridad. */
 import { $, $$, esc, store, cat, slug, uid, hoy, sumar, datos, especie, refrescarCatalogo, tareasEntre, sitio, fotos, blobABase64, preguntarIA, preguntarIAJSON, ajustesIA, IA_POR_DEFECTO, MODELOS, iaLista, nombreIA, VERSION, activarImagenes } from '../core.js';
 import { TIPOS } from '../contenido.js';
+import { coleccionLocal, importarColeccion } from '../importar.js';
 import { rutas, ir, hoja, aviso, confirmar, cabDetalle, segmentado, filaEspecie, repintar, ico } from '../ui.js';
 
 rutas.ajustes = () => {
@@ -9,6 +10,7 @@ rutas.ajustes = () => {
   const ciudad = store.get('ciudad', null);
   const propias = store.get('especiesPropias', []);
   const prov = ia.proveedor;
+  const vieja = coleccionLocal();
   return {
     html: `${cabDetalle('Ajustes')}<div class="contenido ajustes">
       <h2 class="seccion-tit">Asistente con IA</h2>
@@ -38,6 +40,13 @@ rutas.ajustes = () => {
       <section class="tarjeta">
         <p>Una web no puede enviar avisos con la app cerrada. Para que el iPhone te recuerde las tareas, añádelas a tu Calendario: se crean eventos de los próximos 60 días con alarma a las 9:00.</p>
         <button class="btn ancho" data-ics>${ico('calendario')} Añadir tareas al Calendario</button>
+      </section>
+
+      <h2 class="seccion-tit">Traer plantas de Plantitus</h2>
+      <section class="tarjeta">
+        <p>${vieja ? `Plantitus tiene <strong>${vieja.plantas.length}</strong> ${vieja.plantas.length === 1 ? 'planta' : 'plantas'} en este iPhone. Puedes copiarlas aquí con sus fotos, zonas, historial y pautas de riego.` : 'No hay plantas de Plantitus en este navegador. Si las tienes en otro dispositivo, exporta allí una copia de Plantitus e impórtala aquí con «Importar».'}</p>
+        ${vieja ? `<button class="btn ancho" data-plantitus>${ico('subir')} Copiar mis plantas de Plantitus</button>` : ''}
+        ${store.get('importadoPlantitus', null) ? `<p class="sub">Última importación: ${esc(store.get('importadoPlantitus'))}. Las plantas ya copiadas no se duplican.</p>` : ''}
       </section>
 
       <h2 class="seccion-tit">Copia de seguridad</h2>
@@ -71,6 +80,13 @@ rutas.ajustes = () => {
         if (e.target.closest('[data-ics]')) exportarICS();
         if (e.target.closest('[data-exportar]')) exportarCopia();
         if (e.target.closest('[data-importar]')) importarCopia();
+        if (e.target.closest('[data-plantitus]')) {
+          const b = e.target.closest('[data-plantitus]');
+          b.disabled = true; b.textContent = 'Copiando…';
+          const r = await importarColeccion(coleccionLocal());
+          avisoImportacion(r);
+          ir('plantas');
+        }
         if (e.target.closest('[data-borrar-cache]')) { store.del('wiki'); aviso('Caché vaciada'); }
         if (e.target.closest('[data-borrar-todo]') && await confirmar('Se borrarán tus plantas, sitios, fotos, favoritas y especies propias. ¿Seguro?', { si: 'Borrarlo todo', peligro: true })) {
           for (const k of Object.keys(localStorage)) if (k.startsWith('pp.')) localStorage.removeItem(k);
@@ -267,7 +283,13 @@ async function importarCopia() {
     if (!file) return;
     let c;
     try { c = JSON.parse(await file.text()); } catch { aviso('El archivo no es una copia válida'); return; }
-    if (c.app !== 'plantitus-pro') { aviso('El archivo no es una copia de Plantitus Pro'); return; }
+    if (c.app === 'plantitus' && c.coleccion?.plantas) {
+      if (!await confirmar(`Es una copia de Plantitus con ${c.coleccion.plantas.length} plantas. Se añadirán a las que ya tienes. ¿Continuar?`, { si: 'Añadir' })) return;
+      avisoImportacion(await importarColeccion(c.coleccion, c.fotos || {}));
+      ir('plantas');
+      return;
+    }
+    if (c.app !== 'plantitus-pro') { aviso('El archivo no es una copia de Plantitus ni de Plantitus Pro'); return; }
     if (!await confirmar(`Se sustituirán tus datos por los de la copia del ${new Date(c.fecha).toLocaleDateString('es-ES')} (${c.plantas?.length || 0} plantas). ¿Continuar?`, { si: 'Importar' })) return;
     datos.plantas = c.plantas || []; datos.sitios = c.sitios || datos.sitios; datos.favoritos = c.favoritos || [];
     store.set('especiesPropias', c.especiesPropias || []);
@@ -282,4 +304,10 @@ async function importarCopia() {
     ir('plantas');
   };
   i.click();
+}
+
+function avisoImportacion(r) {
+  if (!r.n) { aviso(r.saltadas ? 'Esas plantas ya estaban copiadas' : 'No había plantas que copiar'); return; }
+  const sin = r.n - r.conEspecie;
+  aviso(`${r.n} ${r.n === 1 ? 'planta copiada' : 'plantas copiadas'}${sin ? ` (${sin} sin especie del catálogo: revisa su ficha)` : ''}`);
 }

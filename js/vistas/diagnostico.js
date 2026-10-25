@@ -24,7 +24,7 @@ rutas.diagnostico = () => ({
     $('[data-autodiag]', v).onclick = () => autodiagnostico();
     $('[data-sintomas]', v).onclick = () => autodiagnostico({ sinFoto: true });
   },
-}));
+});
 
 rutas.parte = (id) => {
   const p = PARTES.find((x) => x.id === id);

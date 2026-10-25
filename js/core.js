@@ -142,11 +142,19 @@ export function intervaloRiego(e, fecha = hoy()) {
   if (t === 'R') return e.ri || e.rv * 2;
   return e.rv;
 }
+/* Pauta de riego y abono de una planta: la de su especie, salvo que la planta
+ * traiga una propia (p. ej. importada de Plantitus) en recordatorios.*.pauta. */
+export function pauta(p) {
+  const e = especie(p?.especie);
+  const r = p?.recordatorios?.riego?.pauta, a = p?.recordatorios?.abono?.pauta;
+  if (!r && !a) return e;
+  return { rv: 7, ri: 14, meses: 'RRNNNNNNNNRR', abono: 4, abonoMeses: '001111111000', ...(e || {}), ...(r || {}), ...(a || {}) };
+}
 export function intervaloTxt(p) {
   const r = p.recordatorios?.riego;
   if (!r?.on) return 'Sin recordatorio de riego';
   if (r.cada) return `Cada ${r.cada} días`;
-  const n = intervaloRiego(especie(p.especie));
+  const n = intervaloRiego(pauta(p));
   return n ? `Cada ${n} días` : 'Sin riego este mes';
 }
 function primerDiaMesSiguiente(s, ok) {
@@ -160,7 +168,7 @@ function primerDiaMesSiguiente(s, ok) {
 /* Siguiente fecha de un recordatorio a partir de una fecha de última vez. */
 export function siguiente(p, tipo, desde) {
   const r = p.recordatorios[tipo];
-  const e = especie(p.especie);
+  const e = pauta(p);
   if (tipo === 'riego' && !r.cada && e) {
     const n = intervaloRiego(e, desde);
     const ok = (m) => (e.meses || 'N')[m] !== 'S';
@@ -495,7 +503,6 @@ export async function preguntarIA(mensajes, { sistema = SISTEMA, json = false, m
     headers: { Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       model: modelo,
-      ...(json ? { response_format: { type: 'json_object' } } : {}),
       messages: [
         { role: 'system', content: sistema },
         ...mensajes.map((m) => ({

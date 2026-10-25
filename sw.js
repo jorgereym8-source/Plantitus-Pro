@@ -3,7 +3,7 @@
 const CACHE = 'plantitus-pro-v1';
 const ARCHIVOS = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
-  'js/main.js', 'js/core.js', 'js/ui.js', 'js/iconos.js', 'js/contenido.js',
+  'js/main.js', 'js/core.js', 'js/ui.js', 'js/iconos.js', 'js/contenido.js', 'js/importar.js',
   'js/vistas/tareas.js', 'js/vistas/diagnostico.js', 'js/vistas/buscar.js', 'js/vistas/herramientas.js',
   'js/vistas/plantas.js', 'js/vistas/ajustes.js', 'js/vistas/guia.js',
   'data/especies.json', 'data/enfermedades.json',
