@@ -1,0 +1,581 @@
+[
+{
+"nombre": "Cochinilla algodonosa",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"hojas",
+"tallos"
+],
+"sintomas": "Masas blancas con aspecto de algodón en las axilas de las hojas, entre las espinas o en las raíces.",
+"causas": "Ambiente seco y caluroso y contagio desde plantas nuevas sin cuarentena.",
+"tratamiento": "Retira los focos con un bastoncillo con alcohol isopropílico. Pulveriza jabón potásico o aceite de neem cada 7 días durante 3 semanas. Revisa también las raíces.",
+"id": 1,
+"url": "https://es.wikipedia.org/wiki/Pseudococcidae"
+},
+{
+"nombre": "Cochinilla de escudo",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"tallos",
+"hojas"
+],
+"sintomas": "Pequeñas lapas marrones adheridas a tallos y nervios. Hojas pegajosas.",
+"causas": "Plantas debilitadas, poca ventilación.",
+"tratamiento": "Despréndelas con la uña o un cepillo y alcohol. Después, aceite de parafina o neem para asfixiar las larvas.",
+"id": 2,
+"url": "https://es.wikipedia.org/wiki/Coccidae"
+},
+{
+"nombre": "Cochinilla del carmín",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"tallos"
+],
+"sintomas": "Bolitas blancas cerosas en las palas de tuneras y cactus; al aplastarlas sueltan un líquido rojo.",
+"causas": "Dactylopius coccus, muy común en las tuneras de Canarias; se extiende con el viento.",
+"tratamiento": "Cepilla con agua y jabón potásico a presión. En focos grandes corta las palas afectadas.",
+"id": 3,
+"url": "https://es.wikipedia.org/wiki/Dactylopius_coccus"
+},
+{
+"nombre": "Araña roja",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"hojas"
+],
+"sintomas": "Punteado amarillento en las hojas, aspecto polvoriento y finas telarañas en las puntas.",
+"causas": "Calor y ambiente muy seco, típico de interiores con calefacción o de azoteas en verano.",
+"tratamiento": "Sube la humedad y ducha la planta. Jabón potásico o azufre mojable cada 5 días. En casos graves, acaricida.",
+"id": 4,
+"url": "https://es.wikipedia.org/wiki/Tetranychus_urticae"
+},
+{
+"nombre": "Trips",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"hojas",
+"flores"
+],
+"sintomas": "Manchas plateadas en hojas y pétalos, puntos negros (excrementos) y flores deformadas.",
+"causas": "Calor seco; entran con flores cortadas o plantas nuevas.",
+"tratamiento": "Trampas cromáticas azules, jabón potásico y aceite de neem en el envés cada 5-7 días.",
+"id": 5,
+"url": "https://es.wikipedia.org/wiki/Thysanoptera"
+},
+{
+"nombre": "Mosca blanca",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"hojas"
+],
+"sintomas": "Mosquitas blancas que vuelan al mover la planta; hojas amarillas y pegajosas.",
+"causas": "Invernaderos y rincones cálidos sin ventilación.",
+"tratamiento": "Trampas amarillas, jabón potásico y neem en el envés. Repite 3-4 veces.",
+"id": 6,
+"url": "https://es.wikipedia.org/wiki/Aleyrodidae"
+},
+{
+"nombre": "Pulgón",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"hojas",
+"flores"
+],
+"sintomas": "Brotes tiernos deformados, colonias verdes o negras, melaza pegajosa y hormigas.",
+"causas": "Exceso de abono nitrogenado y brotes tiernos en primavera.",
+"tratamiento": "Chorro de agua, jabón potásico o infusión de ajo. Mariquitas como control natural.",
+"id": 7,
+"url": "https://es.wikipedia.org/wiki/Aphididae"
+},
+{
+"nombre": "Mosca del sustrato",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"planta"
+],
+"sintomas": "Mosquitas negras sobre la tierra; las larvas dañan raíces finas y esquejes.",
+"causas": "Sustrato húmedo constantemente y rico en materia orgánica.",
+"tratamiento": "Deja secar más el sustrato, cubre con arena o picón, trampas amarillas y Bacillus thuringiensis israelensis en el riego.",
+"id": 8,
+"url": "https://es.wikipedia.org/wiki/Sciaridae"
+},
+{
+"nombre": "Nematodos del nudo",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"planta"
+],
+"sintomas": "Decaimiento y amarilleo general. Las raíces tienen bultos o nódulos.",
+"causas": "Gusanos microscópicos del suelo (Meloidogyne).",
+"tratamiento": "Descarta el sustrato, corta raíces afectadas y replanta en sustrato nuevo. Esteriliza la maceta.",
+"id": 9,
+"url": "https://es.wikipedia.org/wiki/Meloidogyne"
+},
+{
+"nombre": "Caracoles y babosas",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"hojas"
+],
+"sintomas": "Agujeros irregulares en hojas tiernas y rastros brillantes de baba.",
+"causas": "Noches húmedas, riegos al atardecer y lugares sombríos.",
+"tratamiento": "Recógelos de noche, barreras de ceniza o cáscara de huevo y trampas de cerveza. Fosfato férrico si hay muchos.",
+"id": 10,
+"url": "https://es.wikipedia.org/wiki/Gastropoda"
+},
+{
+"nombre": "Orugas",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"hojas",
+"frutos"
+],
+"sintomas": "Hojas comidas desde el borde, excrementos negros y orugas entre las hojas.",
+"causas": "Mariposas y polillas que ponen huevos en primavera y verano.",
+"tratamiento": "Retirada a mano y Bacillus thuringiensis (ecológico) al atardecer.",
+"id": 11,
+"url": "https://es.wikipedia.org/wiki/Oruga"
+},
+{
+"nombre": "Minador de hojas",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"hojas"
+],
+"sintomas": "Galerías blanquecinas serpenteantes dentro de la hoja.",
+"causas": "Larvas de pequeñas moscas o polillas que viven dentro de la hoja.",
+"tratamiento": "Corta las hojas afectadas y aplica aceite de neem. Trampas amarillas para los adultos.",
+"id": 12,
+"url": "https://es.wikipedia.org/wiki/Minador"
+},
+{
+"nombre": "Picudo y escarabajos",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"tallos"
+],
+"sintomas": "Galerías, serrín en la base y caída del cogollo (palmeras) o del tallo.",
+"causas": "Larvas de escarabajos barrenadores, como el picudo rojo en palmeras.",
+"tratamiento": "Revisión periódica, retirada de partes afectadas y aviso al servicio de sanidad vegetal si es picudo rojo.",
+"id": 13,
+"url": "https://es.wikipedia.org/wiki/Rhynchophorus_ferrugineus"
+},
+{
+"nombre": "Polilla del tomate",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"hojas",
+"frutos"
+],
+"sintomas": "Galerías en hojas y agujeros en tomates, con excrementos dentro.",
+"causas": "Tuta absoluta, muy extendida en huertos canarios.",
+"tratamiento": "Trampas de feromonas, retirada de hojas minadas y Bacillus thuringiensis.",
+"id": 14,
+"url": "https://es.wikipedia.org/wiki/Tuta_absoluta"
+},
+{
+"nombre": "Mosca de la fruta",
+"tipo": "Plaga",
+"partes": [
+"plagas",
+"frutos"
+],
+"sintomas": "Frutos con picaduras, zonas blandas y larvas en su interior.",
+"causas": "Ceratitis capitata, sobre todo en verano y otoño.",
+"tratamiento": "Trampas con atrayente, recoge y destruye fruta caída o picada.",
+"id": 15,
+"url": "https://es.wikipedia.org/wiki/Ceratitis_capitata"
+},
+{
+"nombre": "Oídio",
+"tipo": "Hongo",
+"partes": [
+"hojas",
+"flores",
+"planta"
+],
+"sintomas": "Polvo blanco o ceniciento sobre hojas y brotes, como si tuvieran harina.",
+"causas": "Humedad alta con días cálidos y noches frescas, poca ventilación.",
+"tratamiento": "Retira hojas afectadas. Bicarbonato (5 g/l) o leche diluida al 10 %, o azufre. Ventila.",
+"id": 16,
+"url": "https://es.wikipedia.org/wiki/Oídio"
+},
+{
+"nombre": "Roya",
+"tipo": "Hongo",
+"partes": [
+"hojas",
+"tallos"
+],
+"sintomas": "Pústulas naranjas o marrones en el envés; manchas amarillas en el haz.",
+"causas": "Humedad sobre las hojas durante horas.",
+"tratamiento": "Elimina hojas afectadas, riega sin mojar la planta y aplica fungicida a base de cobre o azufre.",
+"id": 17,
+"url": "https://es.wikipedia.org/wiki/Pucciniales"
+},
+{
+"nombre": "Podredumbre radicular",
+"tipo": "Hongo",
+"partes": [
+"planta",
+"tallos"
+],
+"sintomas": "Planta marchita aunque el sustrato esté mojado. Base blanda, negra y con mal olor.",
+"causas": "Exceso de riego, sustrato que no drena o maceta sin agujero.",
+"tratamiento": "Saca la planta, corta todo lo blando hasta tejido sano, espolvorea canela o fungicida, deja secar y replanta en sustrato seco y mineral.",
+"id": 18,
+"url": "https://es.wikipedia.org/wiki/Pudrición_de_la_raíz"
+},
+{
+"nombre": "Pudrición del cuello",
+"tipo": "Hongo",
+"partes": [
+"tallos",
+"planta"
+],
+"sintomas": "Mancha oscura y blanda en la base del cactus o suculenta que sube hacia arriba.",
+"causas": "Agua acumulada en el cuello, frío y sustrato húmedo.",
+"tratamiento": "Corta por encima de la zona podrida hasta ver tejido limpio, deja cicatrizar 1-2 semanas y enraíza de nuevo como esqueje.",
+"id": 19,
+"url": "https://es.wikipedia.org/wiki/Phytophthora"
+},
+{
+"nombre": "Botritis (moho gris)",
+"tipo": "Hongo",
+"partes": [
+"flores",
+"hojas",
+"frutos"
+],
+"sintomas": "Moho gris y algodonoso sobre flores, hojas o frutos que se pudren.",
+"causas": "Humedad alta, frío y restos de flores marchitas.",
+"tratamiento": "Quita flores y restos dañados, ventila y aplica fungicida específico.",
+"id": 20,
+"url": "https://es.wikipedia.org/wiki/Botrytis_cinerea"
+},
+{
+"nombre": "Mancha foliar bacteriana",
+"tipo": "Bacteria",
+"partes": [
+"hojas"
+],
+"sintomas": "Manchas aceitosas que se vuelven negras con un halo amarillo.",
+"causas": "Agua sobre las hojas y calor.",
+"tratamiento": "Corta hojas afectadas, no mojes las hojas al regar y aplica cobre.",
+"id": 21,
+"url": "https://es.wikipedia.org/wiki/Pseudomonas"
+},
+{
+"nombre": "Fumagina (negrilla)",
+"tipo": "Hongo",
+"partes": [
+"hojas",
+"frutos"
+],
+"sintomas": "Polvo negro como hollín sobre las hojas, que se quita al frotar.",
+"causas": "Crece sobre la melaza de pulgones, cochinillas o mosca blanca.",
+"tratamiento": "Acaba primero con la plaga. Limpia las hojas con agua y jabón potásico.",
+"id": 22,
+"url": "https://es.wikipedia.org/wiki/Fumagina"
+},
+{
+"nombre": "Antracnosis",
+"tipo": "Hongo",
+"partes": [
+"hojas",
+"frutos"
+],
+"sintomas": "Manchas hundidas de borde oscuro en hojas y frutos.",
+"causas": "Lluvia o riego por aspersión con calor.",
+"tratamiento": "Retira partes afectadas y aplica fungicida de cobre.",
+"id": 23,
+"url": "https://es.wikipedia.org/wiki/Antracnosis"
+},
+{
+"nombre": "Fusariosis",
+"tipo": "Hongo",
+"partes": [
+"planta",
+"tallos"
+],
+"sintomas": "Amarilleo y marchitez de un solo lado; vasos marrones al cortar el tallo.",
+"causas": "Hongo del suelo que entra por las raíces.",
+"tratamiento": "No tiene cura: aísla la planta, intenta salvar esquejes sanos y desecha el sustrato.",
+"id": 24,
+"url": "https://es.wikipedia.org/wiki/Fusarium"
+},
+{
+"nombre": "Mildiu",
+"tipo": "Hongo",
+"partes": [
+"hojas"
+],
+"sintomas": "Manchas amarillas en el haz y pelusa grisácea en el envés.",
+"causas": "Humedad alta y temperaturas suaves.",
+"tratamiento": "Elimina hojas afectadas y aplica cobre. Riega sin mojar las hojas.",
+"id": 25,
+"url": "https://es.wikipedia.org/wiki/Mildiu"
+},
+{
+"nombre": "Agalla de la corona",
+"tipo": "Bacteria",
+"partes": [
+"tallos"
+],
+"sintomas": "Bultos o tumores leñosos en la base del tallo.",
+"causas": "Bacteria del suelo que entra por heridas.",
+"tratamiento": "No tiene cura: retira la planta y no reutilices el sustrato.",
+"id": 26,
+"url": "https://es.wikipedia.org/wiki/Agrobacterium_tumefaciens"
+},
+{
+"nombre": "Podredumbre apical",
+"tipo": "Fisiopatía",
+"partes": [
+"frutos"
+],
+"sintomas": "Mancha negra y hundida en la punta de tomates y pimientos.",
+"causas": "Falta de calcio por riegos irregulares.",
+"tratamiento": "Riega de forma regular y acolcha el sustrato para que no se seque.",
+"id": 27,
+"url": "https://es.wikipedia.org/wiki/Podredumbre_apical"
+},
+{
+"nombre": "Edema",
+"tipo": "Fisiopatía",
+"partes": [
+"hojas"
+],
+"sintomas": "Pequeñas costras o verrugas corchosas en el envés.",
+"causas": "La planta absorbe más agua de la que transpira (exceso de riego con frío).",
+"tratamiento": "Reduce el riego y mejora la ventilación. Las marcas no desaparecen, pero no salen más.",
+"id": 28,
+"url": "https://es.wikipedia.org/wiki/Edema_(plantas)"
+},
+{
+"nombre": "Etiolación",
+"tipo": "Fisiopatía",
+"partes": [
+"planta",
+"tallos"
+],
+"sintomas": "Tallos pálidos y estirados, rosetas abiertas hacia la luz.",
+"causas": "Falta de luz.",
+"tratamiento": "Lleva la planta a un sitio más luminoso poco a poco. Lo estirado no vuelve atrás: puedes descabezar y replantar.",
+"id": 29,
+"url": "https://es.wikipedia.org/wiki/Etiolación"
+},
+{
+"nombre": "Quemadura solar",
+"tipo": "Fisiopatía",
+"partes": [
+"hojas",
+"tallos"
+],
+"sintomas": "Zonas blancas, amarillas o marrones con textura de papel seco en la cara expuesta.",
+"causas": "Cambio brusco a pleno sol o calor extremo en la azotea.",
+"tratamiento": "Pon malla de sombreo o semisombra y aclimata poco a poco. Las cicatrices quedan.",
+"id": 30,
+"url": "https://es.wikipedia.org/wiki/Insolación"
+},
+{
+"nombre": "Clorosis férrica",
+"tipo": "Fisiopatía",
+"partes": [
+"hojas"
+],
+"sintomas": "Hojas jóvenes amarillas con los nervios verdes.",
+"causas": "Agua o suelo muy calizos que bloquean el hierro.",
+"tratamiento": "Quelato de hierro y agua menos calcárea (lluvia o reposada).",
+"id": 31,
+"url": "https://es.wikipedia.org/wiki/Clorosis"
+},
+{
+"nombre": "Exceso de sales",
+"tipo": "Fisiopatía",
+"partes": [
+"hojas"
+],
+"sintomas": "Puntas y bordes marrones y costra blanca sobre el sustrato o la maceta.",
+"causas": "Exceso de abono o agua dura.",
+"tratamiento": "Lava el sustrato con agua abundante sin cal y reduce el abono.",
+"id": 32,
+"url": "https://es.wikipedia.org/wiki/Salinidad_del_suelo"
+},
+{
+"nombre": "Asfixia radicular",
+"tipo": "Fisiopatía",
+"partes": [
+"planta",
+"hojas"
+],
+"sintomas": "Caída de hojas verdes y planta mustia con el sustrato húmedo.",
+"causas": "Encharcamiento, plato con agua o sustrato compactado.",
+"tratamiento": "Vacía el plato, deja secar y cambia a un sustrato más aireado.",
+"id": 33,
+"url": "https://es.wikipedia.org/wiki/Anoxia_radicular"
+},
+{
+"nombre": "Rajaduras",
+"tipo": "Fisiopatía",
+"partes": [
+"tallos",
+"frutos"
+],
+"sintomas": "El cuerpo del cactus, el tallo o el fruto se abre a lo largo.",
+"causas": "Riego abundante después de una larga sequía.",
+"tratamiento": "Riega de forma regular. Deja cicatrizar en seco y aplica canela.",
+"id": 34,
+"url": "https://es.wikipedia.org/wiki/Fisiopatía_vegetal"
+},
+{
+"nombre": "Choque térmico",
+"tipo": "Fisiopatía",
+"partes": [
+"planta",
+"hojas"
+],
+"sintomas": "Pérdida masiva de hojas en pocos días sin plaga visible.",
+"causas": "Cambio brusco de lugar, corrientes de aire, frío o calefacción.",
+"tratamiento": "Deja la planta en un sitio estable, sin cambiarla de lugar ni abonar hasta que brote.",
+"id": 35,
+"url": "https://es.wikipedia.org/wiki/Estrés_vegetal"
+},
+{
+"nombre": "Hojas amarillas por exceso de riego",
+"tipo": "Fisiopatía",
+"partes": [
+"hojas",
+"planta"
+],
+"sintomas": "Hojas inferiores amarillas y blandas; sustrato siempre húmedo.",
+"causas": "Riegos demasiado frecuentes o maceta sin drenaje.",
+"tratamiento": "Espacia los riegos, comprueba el drenaje y retira las hojas dañadas.",
+"id": 36,
+"url": "https://es.wikipedia.org/wiki/Clorosis"
+},
+{
+"nombre": "Puntas secas",
+"tipo": "Fisiopatía",
+"partes": [
+"hojas"
+],
+"sintomas": "Las puntas de las hojas se secan y se vuelven marrones.",
+"causas": "Ambiente seco, agua con cloro o sales, o falta de riego.",
+"tratamiento": "Sube la humedad, usa agua reposada y corta las puntas siguiendo la forma de la hoja.",
+"id": 37,
+"url": "https://es.wikipedia.org/wiki/Necrosis_(botánica)"
+},
+{
+"nombre": "Caída de capullos",
+"tipo": "Fisiopatía",
+"partes": [
+"flores"
+],
+"sintomas": "Los capullos se caen antes de abrirse.",
+"causas": "Cambios de lugar, falta de luz, sequía o corrientes de aire durante la floración.",
+"tratamiento": "No muevas la planta mientras tiene capullos y mantén el riego regular.",
+"id": 38,
+"url": "https://es.wikipedia.org/wiki/Abscisión"
+},
+{
+"nombre": "No florece",
+"tipo": "Fisiopatía",
+"partes": [
+"flores",
+"planta"
+],
+"sintomas": "La planta crece sana pero no echa flores.",
+"causas": "Poca luz, exceso de nitrógeno o falta de un reposo invernal fresco y seco (cactus).",
+"tratamiento": "Más luz, abono rico en potasio y, en cactus, invierno fresco y casi sin riego.",
+"id": 39,
+"url": "https://es.wikipedia.org/wiki/Floración"
+},
+{
+"nombre": "Flores marchitas pronto",
+"tipo": "Fisiopatía",
+"partes": [
+"flores"
+],
+"sintomas": "Las flores duran muy poco y se arrugan.",
+"causas": "Calor, sol directo fuerte o falta de agua en floración.",
+"tratamiento": "Protege del sol de mediodía y mantén el sustrato húmedo en floración.",
+"id": 40,
+"url": "https://es.wikipedia.org/wiki/Flor"
+},
+{
+"nombre": "Frutos que caen",
+"tipo": "Fisiopatía",
+"partes": [
+"frutos"
+],
+"sintomas": "Los frutos se caen pequeños o sin madurar.",
+"causas": "Falta de polinización, sequía o exceso de frutos.",
+"tratamiento": "Riego regular, abono con potasio y aclareo de frutos si hay demasiados.",
+"id": 41,
+"url": "https://es.wikipedia.org/wiki/Fruto"
+},
+{
+"nombre": "Cristación (fasciación)",
+"tipo": "Rareza",
+"partes": [
+"tallos"
+],
+"sintomas": "El punto de crecimiento se alarga y forma una cresta en abanico.",
+"causas": "Mutación o daño en la yema; muy buscada en cactus de colección.",
+"tratamiento": "No es un problema. Si salen tallos normales, córtalos para mantener la cresta.",
+"id": 42,
+"url": "https://es.wikipedia.org/wiki/Fasciación"
+},
+{
+"nombre": "Gutación",
+"tipo": "Rareza",
+"partes": [
+"hojas"
+],
+"sintomas": "Gotas de agua en las puntas de las hojas por la mañana.",
+"causas": "La planta expulsa agua sobrante por la noche.",
+"tratamiento": "Es normal. Si es muy frecuente, riega un poco menos.",
+"id": 43,
+"url": "https://es.wikipedia.org/wiki/Gutación"
+},
+{
+"nombre": "Reversión de variegado",
+"tipo": "Rareza",
+"partes": [
+"hojas"
+],
+"sintomas": "En una planta variegada salen hojas completamente verdes.",
+"causas": "Poca luz o inestabilidad genética.",
+"tratamiento": "Corta los tallos verdes y dale más luz indirecta.",
+"id": 44,
+"url": "https://es.wikipedia.org/wiki/Variegación"
+},
+{
+"nombre": "Virus del mosaico",
+"tipo": "Virus",
+"partes": [
+"hojas",
+"flores"
+],
+"sintomas": "Manchas en mosaico, anillos y hojas deformadas.",
+"causas": "Virus transmitidos por pulgones o herramientas.",
+"tratamiento": "No tiene cura: aísla o elimina la planta y desinfecta las tijeras.",
+"id": 45,
+"url": "https://es.wikipedia.org/wiki/Virus_del_mosaico_del_tabaco"
+}
+]
