@@ -1,5 +1,5 @@
 /* Pestaña Tareas: tiempo, semana, atrasadas y tareas del día. */
-import { $, $$, esc, hoy, iso, parse, sumar, difDias, DIAS, MESES, fechaLarga, datos, planta, sitio, especie, tareasDelDia, tareasEntre, tareasAtrasadas, completar, posponer, tiempo, iconoTiempo, store, buscarCiudad, guardarPlanta, vencimiento } from '../core.js';
+import { $, $$, esc, nombrePlanta, cientificoPrimero, hoy, iso, parse, sumar, difDias, DIAS, MESES, fechaLarga, datos, planta, sitio, especie, tareasDelDia, tareasEntre, tareasAtrasadas, completar, posponer, tiempo, iconoTiempo, store, buscarCiudad, guardarPlanta, vencimiento } from '../core.js';
 import { TIPOS } from '../contenido.js';
 import { rutas, ir, hoja, aviso, menu, cabDetalle, repintar, ico } from '../ui.js';
 import { ILUSTRACION } from '../iconos.js';
@@ -104,9 +104,9 @@ function filaTarea(t) {
   const nota = t.hecha ? 'Hecho' : t.atrasada ? `Atrasada ${dd} ${dd === 1 ? 'día' : 'días'}` : (s?.nombre || '');
   return `<div class="fila-tarea ${t.hecha ? 'hecha' : ''}">
     <a class="mini-foto" href="#/planta/${esc(p.id)}" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(especie(p.especie)?.cientifico || '')}"></a>
-    <a class="txt" href="#/planta/${esc(p.id)}"><strong>${esc(p.nombre)}</strong><span class="${t.atrasada ? 'rojo' : ''}">${esc(nota)}</span></a>
+    <a class="txt" href="#/planta/${esc(p.id)}"><strong class="${cientificoPrimero() && especie(p.especie) ? 'cient' : ''}">${esc(nombrePlanta(p))}</strong><span class="${t.atrasada ? 'rojo' : ''}">${esc(nota)}</span></a>
     ${t.hecha ? `<span class="check on">${ico('hecho')}</span>` : `<button class="btn-icono tenue" data-opc="${esc(p.id)}" data-tipo="${t.tipo}" aria-label="Opciones">${ico('puntos')}</button>
-    <button class="check" data-hecho="${esc(p.id)}" data-tipo="${t.tipo}" aria-label="${tipo.verbo} ${esc(p.nombre)}">${ico('pendiente')}</button>`}
+    <button class="check" data-hecho="${esc(p.id)}" data-tipo="${t.tipo}" aria-label="${tipo.verbo} ${esc(nombrePlanta(p))}">${ico('pendiente')}</button>`}
   </div>`;
 }
 function listaTareas(tareas, d) {
@@ -161,7 +161,7 @@ function marcar(b) {
   completar(p, tipo, hoy());
   setTimeout(() => {
     repintar();
-    aviso(`${TIPOS[tipo].nombre}: ${p.nombre}`, {
+    aviso(`${TIPOS[tipo].nombre}: ${nombrePlanta(p)}`, {
       deshacer: () => {
         const q = planta(p.id);
         q.recordatorios[tipo] = antes;
@@ -184,7 +184,7 @@ function opcionesTarea(id, tipo) {
     { texto: 'Posponer 3 días', icono: 'reloj', accion: () => { posponer(p, tipo, 3); aviso('Pospuesta 3 días'); repintar(); } },
     { texto: 'Saltar esta vez', icono: 'chevron', accion: () => { completar(p, tipo, hoy(), 'Saltada'); repintar(); } },
     { texto: 'Ver la planta', icono: 'plantas', accion: () => ir('planta/' + id) },
-  ], `${TIPOS[tipo].nombre} · ${p.nombre}`);
+  ], `${TIPOS[tipo].nombre} · ${nombrePlanta(p)}`);
 }
 function menuMas() {
   menu([
@@ -247,7 +247,7 @@ rutas.proximas = () => {
 };
 function filaProxima(t) {
   const p = t.planta, tipo = TIPOS[t.tipo];
-  return `<a class="fila-tarea" href="#/planta/${esc(p.id)}"><span class="mini-foto" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(especie(p.especie)?.cientifico || '')}"></span><span class="txt"><strong>${esc(p.nombre)}</strong><span>${esc(sitio(p.sitio)?.nombre || '')}</span></span><span class="tipo-ico" style="--c:${tipo.color}" title="${tipo.nombre}">${ico(tipo.icono)}</span></a>`;
+  return `<a class="fila-tarea" href="#/planta/${esc(p.id)}"><span class="mini-foto" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(especie(p.especie)?.cientifico || '')}"></span><span class="txt"><strong class="${cientificoPrimero() && especie(p.especie) ? 'cient' : ''}">${esc(nombrePlanta(p))}</strong><span>${esc(sitio(p.sitio)?.nombre || '')}</span></span><span class="tipo-ico" style="--c:${tipo.color}" title="${tipo.nombre}">${ico(tipo.icono)}</span></a>`;
 }
 rutas.atrasadas = () => {
   const ts = tareasAtrasadas();

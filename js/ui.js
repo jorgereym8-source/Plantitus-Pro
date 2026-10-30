@@ -1,5 +1,5 @@
 /* Navegación, cabeceras, hojas (sheets), avisos y componentes comunes. */
-import { $, $$, esc, activarImagenes, especie, grupo, cat, intervaloTxt, sitio, esFavorito, alternarFavorito, preguntarIA, md, iaLista, nombreIA, origenTxt } from './core.js';
+import { $, $$, esc, activarImagenes, especie, grupo, cat, intervaloTxt, sitio, esFavorito, alternarFavorito, origenTxt, nombres, nombresPlanta } from './core.js';
 import { ico } from './iconos.js';
 
 export const rutas = {};
@@ -28,7 +28,11 @@ let rutaPintada = '';
 export async function pintar() {
   const { vista, params } = rutaActual();
   const fn = rutas[vista] || rutas.tareas;
-  const main = $('#vista');
+  // Cada pantalla empieza con un contenedor nuevo: así no se acumulan los
+  // escuchadores de toques de las pantallas anteriores.
+  const viejo = $('#vista');
+  const main = viejo.cloneNode(false);
+  viejo.replaceWith(main);
   if (rutaPintada) scrolls[rutaPintada] = window.scrollY;
   const clave = location.hash;
   const esTab = TABS.some((t) => t.id === vista);
@@ -131,10 +135,15 @@ export function menu(opciones, titulo = '') {
 /* ---------- componentes ---------- */
 export const LUZ_ICONO = { sombra: '☁️', semi: '⛅', parcial: '🌤️', sol: '☀️' };
 export const DIF_TXT = { F: 'Fácil', M: 'Moderada', D: 'Difícil' };
+/* Nombre principal y secundario (común o científico primero, según Ajustes). */
+export function nomHTML([a, b, cient], tagA = 'strong', tagB = 'em') {
+  return `<${tagA} class="${cient ? 'cient' : ''}">${esc(a)}</${tagA}>${b ? `<${tagB} class="${cient ? 'comun' : ''}">${esc(b)}</${tagB}>` : ''}`;
+}
+export const nomPrincipal = ([a, , cient]) => `<span class="${cient ? 'cient' : ''}">${esc(a)}</span>`;
 export function tarjetaEspecie(e) {
   const fav = esFavorito(e.id);
   return `<a class="tarjeta-esp" href="#/especie/${encodeURIComponent(e.id)}">
-    <div class="foto" data-wiki="${esc(e.cientifico)}"><span class="foto-nombre">${esc(e.nombre)}</span>
+    <div class="foto" data-wiki="${esc(e.cientifico)}"><span class="foto-nombre">${nomPrincipal(nombres(e))}</span>
       <button class="fav-mini ${fav ? 'on' : ''}" data-fav="${esc(e.id)}" aria-label="Favorita">${ico(fav ? 'corazonOn' : 'corazonMas')}</button></div>
     <div class="datos"><span>${ico('mano')} ${DIF_TXT[e.dificultad]}</span><span>${ico('sol')} ${esc(cat.luz[e.luz])}</span></div>
   </a>`;
@@ -143,7 +152,7 @@ export function filaEspecie(e, { accion = '' } = {}) {
   const o = origenTxt(e);
   return `<a class="fila-esp" href="#/especie/${encodeURIComponent(e.id)}" data-id="${esc(e.id)}">
     <div class="mini-foto" data-wiki="${esc(e.cientifico)}"></div>
-    <div class="txt"><strong>${esc(e.nombre)}</strong><em>${esc(e.cientifico)}</em><span class="meta">${esc(grupo(e).nombre)}${o ? ' · ' + o : ''}${e.propia ? ' · Añadida por ti' : ''}</span></div>
+    <div class="txt">${nomHTML(nombres(e))}<span class="meta">${esc(grupo(e).nombre)}${o ? ' · ' + o : ''}${e.propia ? ' · Añadida por ti' : ''}</span></div>
     ${accion || ico('chevron', 'tenue')}
   </a>`;
 }
@@ -153,8 +162,7 @@ export function tarjetaPlanta(p) {
   return `<article class="tarjeta-planta" data-planta="${esc(p.id)}">
     <a class="foto" href="#/planta/${esc(p.id)}" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(e?.cientifico || p.cientifico || '')}"></a>
     <a class="txt" href="#/planta/${esc(p.id)}">
-      <strong>${esc(p.nombre)}</strong>
-      <em>${esc(e?.cientifico || p.cientifico || '')}</em>
+      ${nomHTML(nombresPlanta(p))}
       <span class="meta">${ico('ubicacion')} ${esc(s?.nombre || 'Sin sitio')}</span>
       <span class="meta">${ico('regaderaLinea')} ${esc(intervaloTxt(p))}</span>
     </a>
@@ -180,46 +188,6 @@ export function segmentado(nombre, opciones, actual) {
 }
 export function chips(lista) {
   return `<div class="chips">${lista.filter(Boolean).map((c) => `<span class="chip ${c.cls || ''}">${c.icono ? ico(c.icono) : ''}${esc(c.texto)}</span>`).join('')}</div>`;
-}
-
-/* ---------- chat con el asistente ---------- */
-const chats = new Map();
-export function chatHTML(clave, { titulo = 'Pregúntale al asistente', sugerencias = [] } = {}) {
-  return `<section class="tarjeta chat" data-chat="${esc(clave)}">
-    <h3>${ico('chispa', 'verde')} ${esc(titulo)} <span class="ia-nombre">${iaLista() ? nombreIA() : ''}</span></h3>
-    <div class="chat-msgs"></div>
-    ${sugerencias.length ? `<div class="chat-sug">${sugerencias.map((s) => `<button class="chip-btn" data-sug="${esc(s)}">${esc(s)}</button>`).join('')}</div>` : ''}
-    <form class="chat-form"><input type="text" placeholder="Escribe tu pregunta…" enterkeyhint="send" aria-label="Pregunta"><button class="btn-redondo" aria-label="Enviar">${ico('enviar')}</button></form>
-  </section>`;
-}
-export function activarChat(raiz, clave, contexto) {
-  const box = $(`[data-chat="${CSS.escape(clave)}"]`, raiz);
-  if (!box) return;
-  const estado = chats.get(clave) || { msgs: [], cargando: false };
-  chats.set(clave, estado);
-  const lista = $('.chat-msgs', box);
-  const pintarMsgs = () => {
-    lista.innerHTML = estado.msgs.map((m) => `<div class="msg ${m.rol} ${m.error ? 'error' : ''}">${m.rol === 'assistant' ? md(m.texto) : esc(m.texto)}</div>`).join('') + (estado.cargando ? '<div class="msg assistant escribiendo"><i></i><i></i><i></i></div>' : '');
-    if (!iaLista() && !estado.msgs.length) lista.innerHTML = `<p class="sub">Para usar el asistente, añade una clave de Gemini o de Claude en <a href="#/ajustes">Ajustes</a>.</p>`;
-  };
-  const enviar = async (texto) => {
-    if (!texto.trim() || estado.cargando) return;
-    estado.msgs.push({ rol: 'user', texto });
-    estado.cargando = true; pintarMsgs();
-    try {
-      // Quita los errores y la pregunta que los provocó, para que se alternen usuario y asistente
-      const historial = [];
-      for (const m of estado.msgs) { if (m.error) historial.pop(); else historial.push({ rol: m.rol, texto: m.texto }); }
-      historial[0] = { ...historial[0], texto: `${contexto}\n\nPregunta: ${historial[0].texto}` };
-      const r = await preguntarIA(historial);
-      estado.msgs.push({ rol: 'assistant', texto: r });
-    } catch (e) {
-      estado.msgs.push({ rol: 'assistant', texto: e.message, error: true });
-    } finally { estado.cargando = false; pintarMsgs(); }
-  };
-  $('.chat-form', box).onsubmit = (e) => { e.preventDefault(); const i = $('input', box); enviar(i.value); i.value = ''; };
-  box.addEventListener('click', (e) => { const s = e.target.closest('[data-sug]'); if (s) enviar(s.dataset.sug); });
-  pintarMsgs();
 }
 
 export { ico };

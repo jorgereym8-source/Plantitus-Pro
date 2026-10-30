@@ -1,7 +1,7 @@
 /* Pestaña Herramientas: calculador de riego, medidor de luz, comprobación de maceta, cursos y remedios. */
-import { $, $$, esc, cat, especie, grupo, datos, planta, sitio, intervaloRiego, hoy, guardarPlanta, sumar, fechaLarga, vencimiento } from '../core.js';
+import { $, esc, cat, especie, datos, planta, sitio, intervaloRiego, hoy, guardarPlanta, sumar, fechaLarga, vencimiento, nombres, nombrePlanta, pauta } from '../core.js';
 import { REMEDIOS, NIVELES_LUZ } from '../contenido.js';
-import { rutas, ir, aviso, cabRaiz, cabDetalle, segmentado, tarjetaEspecie, chatHTML, activarChat, repintar, ico, LUZ_ICONO } from '../ui.js';
+import { rutas, aviso, cabRaiz, cabDetalle, segmentado, tarjetaEspecie, nomPrincipal, repintar, ico, LUZ_ICONO } from '../ui.js';
 import { guiaEspecie } from './guia.js';
 import { tarjetaRemedio } from './diagnostico.js';
 
@@ -31,7 +31,7 @@ rutas.herramientas = () => {
   };
 };
 function tarjetaCurso(e, tuya) {
-  return `<a class="tarjeta-curso" href="#/curso/${encodeURIComponent(e.id)}"><span class="foto" data-wiki="${esc(e.cientifico)}"></span>${tuya ? '<span class="badge">Tu planta</span>' : ''}<strong>${esc(e.nombre)}</strong></a>`;
+  return `<a class="tarjeta-curso" href="#/curso/${encodeURIComponent(e.id)}"><span class="foto" data-wiki="${esc(e.cientifico)}"></span>${tuya ? '<span class="badge">Tu planta</span>' : ''}<strong>${nomPrincipal(nombres(e))}</strong></a>`;
 }
 
 rutas.cursos = () => {
@@ -49,13 +49,12 @@ rutas.cursos = () => {
 rutas.curso = (id) => {
   const e = especie(id);
   if (!e) return rutas.cursos();
+  const [n1, n2, cient] = nombres(e);
   return {
     html: `<div class="cabecera-foto" data-wiki="${esc(e.cientifico)}">${cabDetalle('', { transparente: true })}</div>
-      <div class="contenido ficha"><p class="sub">Curso de cuidados</p><h1 class="ficha-nombre">${esc(e.nombre)}</h1><p class="ficha-cient">${esc(e.cientifico)}</p>
+      <div class="contenido ficha"><p class="sub">Curso de cuidados</p><h1 class="ficha-nombre ${cient ? 'cient' : ''}">${esc(n1)}</h1><p class="ficha-cient ${cient ? 'comun' : ''}">${esc(n2)}</p>
       ${guiaEspecie(e)}
-      ${chatHTML('curso-' + id, { titulo: 'Dudas sobre sus cuidados', sugerencias: ['Hazme un plan para todo el año', '¿Cómo la reproduzco por esqueje?'] })}
       <a class="btn sec ancho" href="#/especie/${encodeURIComponent(e.id)}">Ver la ficha completa</a></div>`,
-    despues(v) { activarChat(v, 'curso-' + id, `Curso de cuidados de ${e.nombre} (${e.cientifico}).`); },
   };
 };
 rutas.remedio = (id) => {
@@ -63,7 +62,7 @@ rutas.remedio = (id) => {
   if (!r) return rutas.herramientas();
   const enf = r.para.map((n) => cat.enfermedades.find((x) => x.nombre === n)).filter(Boolean);
   return {
-    html: `<div class="cabecera-foto" data-wiki="${esc(r.wiki)}">${cabDetalle('', { transparente: true })}</div>
+    html: `<div class="cabecera-foto" data-wikititulo="${esc(r.wiki)}">${cabDetalle('', { transparente: true })}</div>
     <div class="contenido ficha"><span class="badge-tipo">${esc(r.tipo)}</span><h1 class="ficha-nombre">${esc(r.nombre)}</h1>
       <section class="tarjeta"><h3>${ico('copia', 'verde')} Qué necesitas</h3><ul>${r.receta.map((x) => `<li>${esc(x)}</li>`).join('')}</ul></section>
       <section class="tarjeta"><h3>${ico('spray', 'azul')} Cómo se usa</h3><p>${esc(r.uso)}</p></section>
@@ -99,7 +98,7 @@ function calcRiego() {
   const grupos = Object.entries(cat.grupos);
   return {
     html: `${cabDetalle('Calculador de riego')}<div class="contenido form herramienta">
-      <label>Planta<select data-k="plantaId"><option value="">Otra planta (elige el tipo)</option>${plantas.map((x) => `<option value="${esc(x.id)}" ${x.id === calc.plantaId ? 'selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select></label>
+      <label>Planta<select data-k="plantaId"><option value="">Otra planta (elige el tipo)</option>${plantas.map((x) => `<option value="${esc(x.id)}" ${x.id === calc.plantaId ? 'selected' : ''}>${esc(nombrePlanta(x))}</option>`).join('')}</select></label>
       ${!p ? `<label>Tipo de planta<select data-k="grupo">${grupos.map(([k, x]) => `<option value="${k}" ${k === calc.grupo ? 'selected' : ''}>${esc(x.nombre)}</option>`).join('')}</select></label>` : ''}
       <label>Diámetro de la maceta: <strong>${calc.diam} cm</strong><input type="range" min="5" max="50" step="1" value="${calc.diam}" data-k="diam"></label>
       <div class="campo"><span>Material</span>${segmentado('material', [['plastico', 'Plástico o cerámica'], ['barro', 'Barro']], calc.material)}</div>
@@ -109,7 +108,7 @@ function calcRiego() {
         <div><span>${ico('calendario', 'verde')}</span><strong>${dias ? `Cada ${dias} días` : 'Sin riego'}</strong><em>en ${['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][new Date().getMonth()]}</em></div>
       </section>
       <p class="sub">${esc(cat.grupos[g]?.riegoTxt || '')} Es una estimación: comprueba siempre con el dedo o un palillo que el sustrato está seco antes de volver a regar.</p>
-      ${p && dias && p.recordatorios.riego.on && !p.recordatorios.riego.cada && e && dias !== intervaloRiego(e) ? `<button class="btn sec ancho" data-aplicar="${dias}">Usar cada ${dias} días en ${esc(p.nombre)}</button>` : ''}
+      ${p && dias && p.recordatorios.riego.on && !p.recordatorios.riego.cada && e && dias !== intervaloRiego(e) ? `<button class="btn sec ancho" data-aplicar="${dias}">Usar cada ${dias} días en ${esc(nombrePlanta(p))}</button>` : ''}
     </div>`,
     despues(v) {
       v.addEventListener('input', (ev) => {
@@ -249,18 +248,14 @@ function temporada() {
     ['Noviembre', 'Cactus casi sin agua hasta marzo. Más luz para las plantas de interior: acércalas a la ventana. Época de plantar flora canaria en el jardín con las lluvias.'],
     ['Diciembre', 'Flor de Pascua lejos de radiadores y corrientes, riego moderado. Cactus de Navidad en flor: no lo muevas de sitio. Revisa plagas en interior.'],
   ][m];
-  const mias = datos.plantas.map((p) => ({ p, e: especie(p.especie) })).filter((x) => x.e);
+  const mias = datos.plantas.map((p) => ({ p, e: pauta(p) })).filter((x) => x.e);
   const paradas = mias.filter((x) => ['S', 'R'].includes(x.e.meses[m]));
   const activas = mias.filter((x) => x.e.meses[m] === 'N');
   return {
     html: `${cabDetalle('Qué hacer este mes')}<div class="contenido herramienta">
       <section class="tarjeta"><h3>${ico('calendario', 'verde')} ${consejos[0]}</h3><p>${esc(consejos[1])}</p></section>
-      ${activas.length ? `<section class="tarjeta"><h3>${ico('regadera', 'azul')} En crecimiento</h3><p>${activas.map((x) => esc(x.p.nombre)).join(', ')}</p></section>` : ''}
-      ${paradas.length ? `<section class="tarjeta"><h3>${ico('reloj', 'naranja')} En reposo: poco o ningún riego</h3><p>${paradas.map((x) => esc(x.p.nombre)).join(', ')}</p></section>` : ''}
-      ${chatHTML('temporada', { titulo: 'Plan personalizado', sugerencias: ['¿Qué hago este mes con mis plantas?'] })}
+      ${activas.length ? `<section class="tarjeta"><h3>${ico('regadera', 'azul')} En crecimiento</h3><p>${activas.map((x) => esc(nombrePlanta(x.p))).join(', ')}</p></section>` : ''}
+      ${paradas.length ? `<section class="tarjeta"><h3>${ico('reloj', 'naranja')} En reposo: poco o ningún riego</h3><p>${paradas.map((x) => esc(nombrePlanta(x.p))).join(', ')}</p></section>` : ''}
     </div>`,
-    despues(v) {
-      activarChat(v, 'temporada', `Mes actual: ${consejos[0]}. Plantas del usuario: ${mias.map((x) => `${x.p.nombre} (${x.e.cientifico}, ${sitio(x.p.sitio)?.nombre || 'sin sitio'})`).join('; ') || 'ninguna aún'}.`);
-    },
   };
 }

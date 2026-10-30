@@ -1,7 +1,7 @@
 /* Núcleo de Plantitus Pro: datos, fechas, tareas, fotos, Wikipedia, tiempo e IA. */
 import { TIPOS, SITIOS_INICIALES } from './contenido.js';
 
-export const VERSION = '1.0.0';
+export const VERSION = '1.1.0';
 
 /* ---------- utilidades ---------- */
 export const $ = (s, el = document) => el.querySelector(s);
@@ -53,7 +53,11 @@ export async function cargarCatalogo() {
     fetch('data/enfermedades.json').then((r) => r.json()),
   ]);
   Object.assign(cat, esp);
-  cat.enfermedades = enf;
+  cat.enfermedades = enf.problemas;
+  cat.sintomas = enf.sintomas;
+  cat.partesSintoma = enf.partes;
+  cat.condiciones = enf.condiciones;
+  cat.tiposPlanta = enf.plantas;
   refrescarCatalogo();
 }
 export function refrescarCatalogo() {
@@ -63,6 +67,37 @@ export function refrescarCatalogo() {
   cat.porId = new Map(cat.especies.map((e) => [e.id, e]));
 }
 export const especie = (id) => (id ? cat.porId.get(id) : null);
+/* Preferencias de la app (nombre científico primero, etc.). */
+export const prefs = () => store.get('prefs', {});
+export const cientificoPrimero = () => prefs().nombres === 'cientifico';
+/* [principal, secundario, principalEsCientifico] de una especie. */
+export function nombres(e) {
+  if (!e) return ['', '', false];
+  return cientificoPrimero() ? [e.cientifico, e.nombre, true] : [e.nombre, e.cientifico, false];
+}
+export const nombreEsp = (e) => nombres(e)[0];
+/* Lo mismo para una planta del usuario: su apodo y el nombre científico de su especie. */
+export function nombresPlanta(p) {
+  const c = especie(p?.especie)?.cientifico || p?.cientifico || '';
+  if (cientificoPrimero() && c) return [c, p.nombre, true];
+  return [p?.nombre || '', c, false];
+}
+export const nombrePlanta = (p) => nombresPlanta(p)[0];
+/* Tipo de planta (para la guía de problemas) a partir de su grupo y etiquetas. */
+const TIPO_DE_GRUPO = {
+  cactus: 'cactus', cactus_delicado: 'cactus', cactus_selva: 'cactus', suculenta: 'suculenta', suculenta_invernal: 'suculenta',
+  tabaiba: 'suculenta', mesemb: 'suculenta', mesemb_invernal: 'suculenta', caudex: 'suculenta', interior: 'interior', tropical: 'tropical',
+  helecho: 'helecho', orquidea: 'orquidea', bromelia: 'orquidea', tillandsia: 'orquidea', palmera: 'palmera', aromatica: 'aromatica',
+  huerto: 'huerto', flor: 'flor', bulbosa: 'flor', arbusto: 'arbusto', arbusto_canario: 'arbusto', trepadora: 'arbusto', carnivora: 'carnivora',
+};
+export function tiposDeEspecie(e) {
+  if (!e) return [];
+  const t = new Set([TIPO_DE_GRUPO[e.grupo] || (e.grupo === 'arbol' ? (e.tags.includes('com') ? 'frutal' : 'arbusto') : 'interior')]);
+  if (e.tags.some((x) => x === 'end' || x === 'nat' || x === 'mac')) t.add('canaria');
+  if (e.grupo === 'arbol' && e.tags.includes('com')) t.add('frutal');
+  if (e.tags.includes('flor') && !t.has('cactus') && !t.has('suculenta')) t.add('flor');
+  return [...t];
+}
 export const grupo = (e) => cat.grupos[e?.grupo] || cat.grupos.interior;
 export const esCanaria = (e) => e.tags.some((t) => t === 'end' || t === 'nat' || t === 'mac');
 export function origenTxt(e) {
@@ -317,93 +352,165 @@ export function elegirFoto({ camara = false } = {}) {
   });
 }
 
-/* ---------- fotos e información de Wikipedia ---------- */
-const wikiCache = store.get('wiki', {});
-let guardarWikiT;
-const pendientes = new Map();
-let activos = 0; const cola = [];
-function limpiarNombre(c) {
-  return c.replace(/['‘’"].*?['‘’"]/g, '').replace(/\b(x|×)\s+/g, '').replace(/\s+/g, ' ').trim();
+/* ---------- fotos de especies (Wikidata y Wikimedia Commons) ----------
+ * Cada especie se busca por su nombre científico EXACTO en Wikidata (propiedad P225),
+ * solo entre registros con ficha botánica (IPNI o POWO), y se usa su imagen (P18).
+ * Antes se buscaba en Wikipedia y, si no había artículo, se probaba con el género:
+ * «Parodia» en español es la parodia literaria, y por eso salía la foto de una persona. */
+try { localStorage.removeItem('pp.wiki'); } catch { /* caché antigua con fotos equivocadas */ }
+const CLAVE_FOTOS = 'fotosEsp1';
+const fotoCache = store.get(CLAVE_FOTOS, {});
+let guardarFotosT;
+const guardarFotos = () => { clearTimeout(guardarFotosT); guardarFotosT = setTimeout(() => store.set(CLAVE_FOTOS, fotoCache), 800); };
+const commons = (u, ancho = 500) => u.replace(/^http:/, 'https:') + (u.includes('?') ? '&' : '?') + 'width=' + ancho;
+const ES_PLANTA = /(especie|species|g[ée]nero|genus|planta|plant|cact|suculent|variedad|cultivar|h[íi]brid|hybrid|subesp|subspecies|[áa]rbol|tree|arbust|shrub|helecho|fern|orqu[íi]d|orchid|palm|hierba|herb|bromel|trepadora|climber|flor|flower)/i;
+
+/* Variantes del nombre: con «×» de híbrido, sin él, sin variedad o subespecie, y el género. */
+export function variantesTaxon(c) {
+  const base = String(c || '').replace(/\s*['‘’"][^'‘’"]*['‘’"]/g, '').replace(/\s+/g, ' ').trim();
+  const conX = base.replace(/(^|\s)[x×]\s+/g, '$1× ').trim();
+  const sinX = base.replace(/(^|\s)[x×]\s+/g, '$1').trim();
+  const sinInfra = sinX.replace(/\s(var|subsp|ssp|f|nothosubsp)\.\s.*$/, '');
+  const genero = sinX.split(' ')[0];
+  return { exactos: [...new Set([conX, sinX, sinInfra])].filter((x) => x.includes(' ')), genero: genero && genero !== sinX ? genero : (sinX.includes(' ') ? '' : sinX) };
 }
-function variantes(c) {
-  const limpio = limpiarNombre(c);
-  const v = [limpio];
-  const sinInfra = limpio.replace(/\s(var|subsp|ssp|f)\.\s.*$/, '');
-  if (sinInfra !== limpio) v.push(sinInfra);
-  const genero = limpio.split(' ')[0];
-  if (limpio.split(' ').length > 1) v.push(genero);
-  return [...new Set(v)];
+
+/* Consulta a Wikidata agrupando muchos nombres en una sola petición. */
+const colaTaxon = new Map(); // nombre → [resolver]
+let colaTaxonT;
+function fotoTaxon(nombre) {
+  return new Promise((ok) => {
+    if (!colaTaxon.has(nombre)) colaTaxon.set(nombre, []);
+    colaTaxon.get(nombre).push(ok);
+    clearTimeout(colaTaxonT);
+    colaTaxonT = setTimeout(vaciarColaTaxon, 60);
+  });
 }
-async function pedirWiki(titulo) {
-  for (const lang of ['es', 'en']) {
-    try {
-      const r = await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titulo.replace(/ /g, '_'))}`);
-      if (!r.ok) continue;
-      const j = await r.json();
-      if (j.type === 'disambiguation') continue;
-      const img = j.thumbnail?.source || j.originalimage?.source;
-      if (img || lang === 'en') return { img: img || null, texto: lang === 'es' ? j.extract : null, url: j.content_urls?.desktop?.page, lang };
-      if (j.extract) {
-        // en español hay texto pero no foto: busca la foto en inglés
-        const en = await pedirWiki2('en', titulo);
-        return { img: en?.img || null, texto: j.extract, url: j.content_urls?.desktop?.page, lang };
-      }
-    } catch { /* sin red */ }
+async function vaciarColaTaxon() {
+  const todos = [...colaTaxon.entries()];
+  colaTaxon.clear();
+  for (let i = 0; i < todos.length; i += 30) {
+    const lote = todos.slice(i, i + 30);
+    const res = await consultarWikidata(lote.map(([n]) => n));
+    for (const [n, oks] of lote) oks.forEach((ok) => ok(res?.get(n) ?? (res ? null : undefined)));
   }
-  return null;
 }
-async function pedirWiki2(lang, titulo) {
+async function consultarWikidata(nombres) {
+  const lit = (n) => '"' + n.replace(/["\\]/g, '') + '"';
+  const q = `SELECT ?n (SAMPLE(?img) AS ?foto) (SAMPLE(?img2) AS ?foto2) WHERE {
+    VALUES ?n { ${nombres.map(lit).join(' ')} }
+    ?t wdt:P225 ?n .
+    FILTER EXISTS { ?t wdt:P961|wdt:P5037|wdt:P1070 [] }
+    OPTIONAL { ?t wdt:P18 ?img }
+    OPTIONAL { ?acc wdt:P1420 ?t . ?acc wdt:P18 ?img2 }
+  } GROUP BY ?n`;
+  try {
+    const r = await fetch('https://query.wikidata.org/sparql?format=json&query=' + encodeURIComponent(q), { headers: { Accept: 'application/sparql-results+json' } });
+    if (!r.ok) return null;
+    const j = await r.json();
+    const m = new Map();
+    for (const b of j.results.bindings) {
+      const u = b.foto?.value || b.foto2?.value;
+      if (u) m.set(b.n.value, commons(u));
+    }
+    return m;
+  } catch { return null; } // sin red: no se guarda nada y se reintenta luego
+}
+async function resumenWikipedia(lang, titulo) {
   try {
     const r = await fetch(`https://${lang}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(titulo.replace(/ /g, '_'))}`);
     if (!r.ok) return null;
     const j = await r.json();
-    return { img: j.thumbnail?.source || null };
+    return j.type === 'standard' ? j : null;
   } catch { return null; }
 }
-function ejecutarCola() {
-  while (activos < 4 && cola.length) {
-    const [clave, ok] = cola.shift();
-    activos++;
-    (async () => {
-      let res = null;
-      for (const t of variantes(clave)) { res = await pedirWiki(t); if (res?.img) break; }
-      if (res) {
-        wikiCache[clave] = { ...res, t: Date.now() };
-        clearTimeout(guardarWikiT);
-        guardarWikiT = setTimeout(() => store.set('wiki', wikiCache), 800);
-      }
-      ok(res);
-    })().finally(() => { activos--; ejecutarCola(); });
-  }
+/* Resumen de Wikipedia de una especie, solo si el artículo es de una planta. */
+async function wikipediaPlanta(lang, nombre) {
+  const j = await resumenWikipedia(lang, nombre);
+  if (!j) return null;
+  const desc = `${j.description || ''} ${(j.extract || '').slice(0, 220)}`;
+  const mismoNombre = (j.title || '').toLowerCase().split(' ')[0] === nombre.toLowerCase().split(' ')[0];
+  return mismoNombre && ES_PLANTA.test(desc) ? j : null;
 }
-/* Información de Wikipedia de un nombre científico o un título. */
-export function wiki(clave) {
-  if (!clave) return Promise.resolve(null);
-  const c = wikiCache[clave];
-  if (c && Date.now() - c.t < 30 * 86400000) return Promise.resolve(c);
-  if (pendientes.has(clave)) return pendientes.get(clave);
-  const p = new Promise((ok) => { cola.push([clave, ok]); ejecutarCola(); });
-  pendientes.set(clave, p);
-  p.finally(() => pendientes.delete(clave));
+const resolviendo = new Map();
+/* URL de la foto de una especie por su nombre científico (o null). */
+export function fotoEspecie(cient) {
+  if (!cient) return Promise.resolve(null);
+  const c = fotoCache[cient];
+  if (c && Date.now() - c.t < (c.img ? 60 : 7) * 86400000) return Promise.resolve(c.img);
+  if (resolviendo.has(cient)) return resolviendo.get(cient);
+  const p = (async () => {
+    const { exactos, genero } = variantesTaxon(cient);
+    let img = null, sinRed = false;
+    for (const n of exactos) {
+      const r = await fotoTaxon(n);
+      if (r === undefined) sinRed = true;
+      if (r) { img = r; break; }
+    }
+    if (!img && !sinRed) {
+      for (const n of exactos) {
+        const w = (await wikipediaPlanta('en', n)) || (await wikipediaPlanta('es', n));
+        if (w?.thumbnail?.source) { img = w.thumbnail.source; break; }
+      }
+    }
+    if (!img && !sinRed && genero) img = await fotoTaxon(genero) || null;
+    if (!sinRed) { fotoCache[cient] = { img, t: Date.now() }; guardarFotos(); }
+    return img;
+  })();
+  resolviendo.set(cient, p);
+  p.finally(() => resolviendo.delete(cient));
   return p;
 }
-/* Rellena las imágenes con [data-wiki] o [data-foto] cuando aparecen en pantalla. */
+/* Foto del artículo de Wikipedia en español con ese título exacto (remedios). */
+const fotoTituloCache = new Map();
+export function fotoTitulo(titulo) {
+  if (!fotoTituloCache.has(titulo)) fotoTituloCache.set(titulo, resumenWikipedia('es', titulo).then((j) => j?.thumbnail?.source || null));
+  return fotoTituloCache.get(titulo);
+}
+/* Texto de Wikipedia en español de una especie (solo si el artículo es de esa planta). */
+export async function descripcionEspecie(cient) {
+  for (const n of variantesTaxon(cient).exactos) {
+    const j = await wikipediaPlanta('es', n);
+    if (j?.extract) return { texto: j.extract, url: j.content_urls?.desktop?.page };
+  }
+  return null;
+}
+/* Foto propia elegida para una especie (o «ninguna»). */
+export const fotosPropiasEsp = {
+  get: (cient) => store.get('fotoEsp', {})[cient] || null,
+  set(cient, v) { const m = store.get('fotoEsp', {}); if (v) m[cient] = v; else delete m[cient]; store.set('fotoEsp', m); },
+};
+export function olvidarFotoEspecie(cient) { delete fotoCache[cient]; guardarFotos(); }
+export function vaciarCacheFotos() { for (const k of Object.keys(fotoCache)) delete fotoCache[k]; store.del(CLAVE_FOTOS); }
+
+/* Rellena las imágenes con [data-foto], [data-wiki] (nombre científico) o [data-wikititulo] al aparecer en pantalla. */
 const io = 'IntersectionObserver' in window ? new IntersectionObserver((entradas) => {
   for (const en of entradas) if (en.isIntersecting) { io.unobserve(en.target); pintarImagen(en.target); }
 }, { rootMargin: '200px' }) : null;
 async function pintarImagen(el) {
   let url = null;
   if (el.dataset.foto) url = await fotos.url(el.dataset.foto);
-  if (!url && el.dataset.wiki) url = (await wiki(el.dataset.wiki))?.img;
+  if (!url && el.dataset.wiki) {
+    const propia = fotosPropiasEsp.get(el.dataset.wiki);
+    if (propia === 'ninguna') url = null;
+    else if (propia) url = await fotos.url(propia);
+    else url = await fotoEspecie(el.dataset.wiki);
+  }
+  if (!url && el.dataset.wikititulo) url = await fotoTitulo(el.dataset.wikititulo);
   if (url) { el.style.backgroundImage = `url("${url}")`; el.classList.add('cargada'); }
   else el.classList.add('sin-foto');
 }
 export function activarImagenes(raiz = document) {
-  for (const el of $$('[data-wiki],[data-foto]', raiz)) {
+  for (const el of $$('[data-wiki],[data-foto],[data-wikititulo]', raiz)) {
     if (el.dataset.pintada) continue;
     el.dataset.pintada = '1';
     if (io) io.observe(el); else pintarImagen(el);
   }
+}
+/* Vuelve a pintar las imágenes (tras cambiar una foto). */
+export function repintarImagenes(raiz = document) {
+  for (const el of $$('[data-pintada]', raiz)) { delete el.dataset.pintada; el.classList.remove('cargada', 'sin-foto'); el.style.backgroundImage = ''; }
+  activarImagenes(raiz);
 }
 
 /* ---------- ubicación y tiempo (Open-Meteo) ---------- */
@@ -456,87 +563,4 @@ export function iconoTiempo(codigo) {
   if (codigo <= 67 || (codigo >= 80 && codigo <= 82)) return '🌧️';
   if (codigo <= 77 || codigo === 85 || codigo === 86) return '❄️';
   return '⛈️';
-}
-
-/* ---------- asistente con IA: Gemini o Claude ---------- */
-export const IA_POR_DEFECTO = { gemini: 'gemini-flash-latest', claude: 'claude-sonnet-5-5' };
-export const MODELOS = {
-  gemini: ['gemini-flash-latest', 'gemini-pro-latest', 'gemini-flash-lite-latest'],
-  claude: ['claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-5-5'],
-};
-export function ajustesIA() {
-  const a = store.get('ia', {});
-  const prov = a.proveedor || 'gemini';
-  return { proveedor: prov, clave: a[prov + 'Clave'] || '', modelo: a[prov + 'Modelo'] || IA_POR_DEFECTO[prov], todo: a };
-}
-export const iaLista = () => !!ajustesIA().clave;
-export const nombreIA = () => (ajustesIA().proveedor === 'claude' ? 'Claude' : 'Gemini');
-const SISTEMA = 'Eres el asistente botánico de Plantitus Pro, una app de cuidado de plantas. Respondes en español de España, claro y práctico, sin rodeos. Conoces muy bien la flora canaria, los cactus y suculentas de colección y las plantas de interior. El usuario cultiva en Canarias (clima suave, veranos secos y luz intensa) salvo que diga otra cosa.';
-/* mensajes: [{rol:'user'|'assistant', texto, imagenes:[{base64,tipo}]}] */
-export async function preguntarIA(mensajes, { sistema = SISTEMA, json = false, max = 1500 } = {}) {
-  const { proveedor, clave, modelo } = ajustesIA();
-  if (!clave) throw new Error(`Falta la clave de ${proveedor === 'claude' ? 'Claude' : 'Gemini'}. Añádela en Ajustes → Asistente con IA.`);
-  if (proveedor === 'claude') {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json', 'x-api-key': clave, 'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: modelo, max_tokens: max, system: sistema,
-        messages: mensajes.map((m) => ({
-          role: m.rol,
-          content: [
-            ...(m.imagenes || []).map((im) => ({ type: 'image', source: { type: 'base64', media_type: im.tipo || 'image/jpeg', data: im.base64 } })),
-            { type: 'text', text: m.texto || '.' },
-          ],
-        })),
-      }),
-    });
-    const j = await r.json().catch(() => ({}));
-    if (!r.ok) throw new Error(`Claude: ${j?.error?.message || 'HTTP ' + r.status}`);
-    return (j.content || []).filter((c) => c.type === 'text').map((c) => c.text).join('\n').trim();
-  }
-  const r = await fetch('https://generativelanguage.googleapis.com/v1beta/openai/chat/completions', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${clave}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: modelo,
-      messages: [
-        { role: 'system', content: sistema },
-        ...mensajes.map((m) => ({
-          role: m.rol,
-          content: m.imagenes?.length
-            ? [...m.imagenes.map((im) => ({ type: 'image_url', image_url: { url: `data:${im.tipo || 'image/jpeg'};base64,${im.base64}` } })), { type: 'text', text: m.texto || '.' }]
-            : m.texto,
-        })),
-      ],
-    }),
-  });
-  const j0 = await r.json().catch(() => ({}));
-  const j = Array.isArray(j0) ? j0[0] : j0;
-  if (!r.ok || !j?.choices) throw new Error(`Gemini: ${j?.error?.message || 'HTTP ' + r.status}`);
-  return (j.choices[0].message.content || '').trim();
-}
-export async function preguntarIAJSON(texto, imagenes = [], opts = {}) {
-  const t = await preguntarIA([{ rol: 'user', texto: texto + '\n\nResponde SOLO con JSON válido, sin texto antes ni después y sin bloque de código.', imagenes }], { ...opts, json: true });
-  const m = t.replace(/^```(?:json)?/i, '').replace(/```$/, '').trim();
-  const ini = m.search(/[[{]/);
-  try { return JSON.parse(ini > 0 ? m.slice(ini) : m); } catch { throw new Error('La respuesta de la IA no se pudo leer. Prueba otra vez.'); }
-}
-/* Markdown mínimo y seguro. */
-export function md(text) {
-  const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>').replace(/(^|[^*])\*([^*\n]+)\*/g, '$1<em>$2</em>');
-  const out = []; let list = null;
-  for (const raw of String(text).split('\n')) {
-    const line = raw.trim();
-    const li = line.match(/^(?:[-*•]|\d+[.)])\s+(.*)$/);
-    if (li) { (list ||= []).push(`<li>${inline(li[1])}</li>`); continue; }
-    if (list) { out.push(`<ul>${list.join('')}</ul>`); list = null; }
-    if (line.startsWith('#')) out.push(`<h4>${inline(line.replace(/^#+\s*/, ''))}</h4>`);
-    else if (line) out.push(`<p>${inline(line)}</p>`);
-  }
-  if (list) out.push(`<ul>${list.join('')}</ul>`);
-  return out.join('');
 }

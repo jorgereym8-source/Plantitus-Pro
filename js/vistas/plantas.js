@@ -1,9 +1,8 @@
 /* Pestaña Mis plantas (Plantas / Sitios), ficha de cada planta y alta de plantas. */
-import { $, $$, esc, uid, hoy, sumar, fechaLarga, haceTxt, datos, planta, sitio, especie, pauta, grupo, cat, buscarEspecies, guardarPlanta, borrarPlanta, recordatoriosIniciales, vencimiento, completar, intervaloRiego, intervaloTxt, fotos, reducirImagen, elegirFoto, store, activarImagenes } from '../core.js';
+import { $, $$, esc, uid, hoy, sumar, fechaLarga, haceTxt, datos, planta, sitio, especie, pauta, grupo, nombres, nombresPlanta, nombrePlanta, cat, buscarEspecies, guardarPlanta, borrarPlanta, recordatoriosIniciales, vencimiento, completar, intervaloRiego, intervaloTxt, fotos, reducirImagen, elegirFoto, store, activarImagenes } from '../core.js';
 import { TIPOS } from '../contenido.js';
-import { rutas, ir, hoja, aviso, menu, confirmar, cabRaiz, cabDetalle, segmentado, tarjetaPlanta, filaEspecie, chips, chatHTML, activarChat, repintar, ico, LUZ_ICONO, DIF_TXT } from '../ui.js';
+import { rutas, ir, hoja, aviso, menu, confirmar, cabRaiz, cabDetalle, segmentado, tarjetaPlanta, filaEspecie, chips, nomHTML, repintar, ico, LUZ_ICONO, DIF_TXT } from '../ui.js';
 import { guiaEspecie } from './guia.js';
-import { identificarConFoto } from './buscar.js';
 import { coleccionLocal } from '../importar.js';
 
 let pestana = 'plantas';
@@ -38,11 +37,11 @@ export function menuPlanta(id) {
   const p = planta(id);
   if (!p) return;
   menu([
-    { texto: 'Regar ahora', icono: 'regadera', accion: () => { completar(p, 'riego'); aviso(`Regada: ${p.nombre}`); repintar(); } },
+    { texto: 'Regar ahora', icono: 'regadera', accion: () => { completar(p, 'riego'); aviso(`Regada: ${nombrePlanta(p)}`); repintar(); } },
     { texto: 'Editar', icono: 'editar', accion: () => editarPlanta(id) },
     { texto: 'Cambiar de sitio', icono: 'ubicacion', accion: () => cambiarSitio(id) },
-    { texto: 'Eliminar', icono: 'basura', peligro: true, accion: async () => { if (await confirmar(`¿Eliminar «${p.nombre}» y su historial?`, { si: 'Eliminar', peligro: true })) { borrarPlanta(id); aviso('Planta eliminada'); ir('plantas', { reemplazar: true }); } } },
-  ], p.nombre);
+    { texto: 'Eliminar', icono: 'basura', peligro: true, accion: async () => { if (await confirmar(`¿Eliminar «${nombrePlanta(p)}» y su historial?`, { si: 'Eliminar', peligro: true })) { borrarPlanta(id); aviso('Planta eliminada'); ir('plantas', { reemplazar: true }); } } },
+  ], nombrePlanta(p));
 }
 
 /* ---------- sitios ---------- */
@@ -110,14 +109,14 @@ function cambiarSitio(id) {
 export function nuevaPlanta(especieId = null) {
   if (especieId) return formularioPlanta({ especie: especieId });
   const h = hoja(`<div class="buscador-alta">
-      <div class="fila-busqueda"><input type="search" placeholder="Busca entre ${cat.especies.length} especies" aria-label="Buscar especie"><button class="btn mini" data-identificar>${ico('camara')} Identificar</button></div>
+      <div class="fila-busqueda"><input type="search" placeholder="Busca entre ${cat.especies.length} especies" aria-label="Buscar especie"></div>
       <div class="resultados"></div>
       <button class="menu-op" data-propia>${ico('editar')}<span>No la encuentro: añadirla a mano</span></button>
     </div>`, { titulo: 'Añadir planta', clase: 'alta' });
   const input = $('input', h.el), res = $('.resultados', h.el);
   const pintarRes = () => {
     const l = buscarEspecies(input.value).slice(0, 40);
-    res.innerHTML = input.value.trim() ? (l.map((e) => filaEspecie(e, { accion: `<span class="btn mini sec">Añadir</span>` })).join('') || '<p class="sub">Sin resultados. Prueba con el nombre científico o identifícala con una foto.</p>') : `<p class="sub">Escribe el nombre común o el científico. También puedes identificarla con una foto.</p>`;
+    res.innerHTML = input.value.trim() ? (l.map((e) => filaEspecie(e, { accion: `<span class="btn mini sec">Añadir</span>` })).join('') || '<p class="sub">Sin resultados. Prueba con el nombre científico o con otro nombre común.</p>') : `<p class="sub">Escribe el nombre común o el científico.</p>`;
     activarImagenes(res);
   };
   input.oninput = pintarRes;
@@ -126,7 +125,6 @@ export function nuevaPlanta(especieId = null) {
   h.el.addEventListener('click', async (e) => {
     const f = e.target.closest('.fila-esp');
     if (f) { e.preventDefault(); h.cerrar(); formularioPlanta({ especie: f.dataset.id }); }
-    if (e.target.closest('[data-identificar]')) { h.cerrar(); identificarConFoto(); }
     if (e.target.closest('[data-propia]')) { h.cerrar(); formularioPlanta({ especie: null, nombre: input.value.trim() }); }
   });
 }
@@ -145,7 +143,7 @@ export function formularioPlanta({ id = null, especie: espId = null, nombre = ''
   const h = hoja(`<form class="form form-planta">
     <button type="button" class="foto-grande" data-foto-btn ${p?.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(e?.cientifico || '')}">
       <span class="foto-btn">${ico('camara')} ${p?.foto || fotoBlob ? 'Cambiar foto' : 'Añadir foto'}</span></button>
-    ${e ? `<div class="esp-elegida"><strong>${esc(e.nombre)}</strong><em>${esc(e.cientifico)}</em></div>` : ''}
+    ${e ? `<div class="esp-elegida">${nomHTML(nombres(e))}</div>` : ''}
     <label>Nombre o apodo<input name="nombre" value="${esc(ini.nombre)}" required placeholder="Mi cactus favorito"></label>
     ${!e ? `<label>Nombre científico (si lo sabes)<input name="cientifico" value="${esc(ini.cientifico)}" placeholder="Aeonium arboreum"></label>
       <label>Tipo de planta<select name="grupo">${Object.entries(cat.grupos).map(([k, g]) => `<option value="${k}">${esc(g.nombre)}</option>`).join('')}</select></label>` : ''}
@@ -209,7 +207,7 @@ export function elegirPlanta(titulo = 'Elige una planta') {
     const ps = datos.plantas;
     if (!ps.length) { aviso('Primero añade alguna planta'); ok(null); return; }
     let elegida = null;
-    const h = hoja(`<div class="menu-lista">${ps.map((p) => `<button class="menu-op planta-op" data-id="${esc(p.id)}"><span class="mini-foto" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(especie(p.especie)?.cientifico || '')}"></span><span>${esc(p.nombre)}<em class="sub"> ${esc(sitio(p.sitio)?.nombre || '')}</em></span></button>`).join('')}</div>`, { titulo, alCerrar: () => ok(elegida) });
+    const h = hoja(`<div class="menu-lista">${ps.map((p) => `<button class="menu-op planta-op" data-id="${esc(p.id)}"><span class="mini-foto" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(especie(p.especie)?.cientifico || '')}"></span><span>${esc(nombrePlanta(p))}<em class="sub comun"> ${esc(sitio(p.sitio)?.nombre || '')}</em></span></button>`).join('')}</div>`, { titulo, alCerrar: () => ok(elegida) });
     h.el.onclick = (e) => { const b = e.target.closest('[data-id]'); if (b) { elegida = b.dataset.id; h.cerrar(); } };
   });
 }
@@ -244,24 +242,23 @@ rutas.planta = (id, seccion, tipoAbrir) => {
         <span class="tipo-ico" style="--c:${TIPOS[x.tipo]?.color || '#8a9a94'}">${ico(TIPOS[x.tipo]?.icono || 'editar')}</span>
         <div class="txt"><strong>${esc(TIPOS[x.tipo]?.nombre || 'Nota')}${x.nota && TIPOS[x.tipo] ? ` · ${esc(x.nota)}` : ''}</strong>${!TIPOS[x.tipo] && x.nota ? `<p>${esc(x.nota)}</p>` : ''}<span>${esc(fechaLarga(x.fecha))} · ${haceTxt(x.fecha)}</span></div>
         <button class="btn-icono tenue" data-borrar-hist="${esc(x.id)}" aria-label="Borrar">${ico('basura')}</button></div>`).join('')}</section>` : '<div class="vacio"><p>Aún no hay nada anotado. Al marcar tareas como hechas aparecerán aquí.</p></div>',
-    info: e ? `${guiaEspecie(e)}<a class="btn sec ancho" href="#/especie/${encodeURIComponent(e.id)}">Ver ficha de ${esc(e.nombre)}</a>` : '<div class="vacio"><p>Esta planta no está enlazada a ninguna especie del catálogo.</p></div>',
+    info: e ? `${guiaEspecie(e)}<a class="btn sec ancho" href="#/especie/${encodeURIComponent(e.id)}">Ver ficha de la especie</a>` : '<div class="vacio"><p>Esta planta no está enlazada a ninguna especie del catálogo.</p></div>',
   }[sec];
-  const contexto = `Planta del usuario: «${p.nombre}»${e ? ` (${e.cientifico}, ${grupo(e).nombre})` : ''}. Sitio: ${s ? `${s.nombre} (${s.exterior ? 'exterior' : 'interior'})` : 'desconocido'}. Último riego: ${p.recordatorios.riego?.ultimo || 'desconocido'}. Notas: ${p.notas || 'ninguna'}. Hoy es ${hoy()}.`;
+  const [n1, n2, cient] = nombresPlanta(p);
   return {
     html: `<div class="cabecera-foto" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(e?.cientifico || p.cientifico || '')}">
         ${cabDetalle('', { transparente: true, derecha: `<button class="btn-icono" data-menu aria-label="Opciones">${ico('puntos')}</button>` })}
         <button class="foto-cambiar" data-foto-cambiar aria-label="Cambiar foto">${ico('camara')}</button>
       </div>
       <div class="contenido ficha">
-        <h1 class="ficha-nombre">${esc(p.nombre)}</h1>
-        ${e || p.cientifico ? `<p class="ficha-cient">${esc(e?.cientifico || p.cientifico)}</p>` : ''}
+        <h1 class="ficha-nombre ${cient ? 'cient' : ''}">${esc(n1)}</h1>
+        ${n2 ? `<p class="ficha-cient ${cient ? 'comun' : ''}">${esc(n2)}</p>` : ''}
         ${chips([{ icono: 'ubicacion', texto: s?.nombre || 'Sin sitio' }, e && { texto: `${LUZ_ICONO[e.luz]} ${cat.luz[e.luz]}` }, e && { icono: 'mano', texto: DIF_TXT[e.dificultad] }, { icono: 'calendario', texto: `Desde ${fechaLarga(p.creada).toLowerCase()}` }])}
         ${segmentado('sec', [['cuidados', 'Cuidados'], ['historial', 'Historial'], ['info', 'Guía']], sec)}
         ${cuerpo}
-        ${chatHTML('planta-' + id, { titulo: 'Pregunta sobre esta planta', sugerencias: ['¿Cuándo la riego?', '¿Por qué amarillean las hojas?', '¿Cómo la reproduzco?'] })}
+        <a class="fila-atrasadas le-pasa" href="#/sintomas/${esc(id)}"><span>${ico('botiquin')} ¿Le pasa algo? Busca por síntomas</span>${ico('chevron')}</a>
       </div>`,
     despues(v) {
-      activarChat(v, 'planta-' + id, contexto);
       if (tipoAbrir && TIPOS[tipoAbrir]) setTimeout(() => editarRecordatorio(id, tipoAbrir), 50);
       v.addEventListener('click', async (ev) => {
         const seg = ev.target.closest('[data-seg] button');

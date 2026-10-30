@@ -1,80 +1,160 @@
-/* Ajustes: asistente con IA, ubicación, catálogo propio, calendario y copia de seguridad. */
-import { $, $$, esc, store, cat, slug, uid, hoy, sumar, datos, especie, refrescarCatalogo, tareasEntre, sitio, fotos, blobABase64, preguntarIA, preguntarIAJSON, ajustesIA, IA_POR_DEFECTO, MODELOS, iaLista, nombreIA, VERSION, activarImagenes } from '../core.js';
+/* Ajustes: apariencia, nombres, ubicación, catálogo propio, calendario y copia de seguridad.
+ * Cada bloque es un desplegable para que la página no se haga larga. */
+import { $, $$, esc, store, cat, slug, uid, hoy, sumar, datos, especie, refrescarCatalogo, tareasEntre, sitio, fotos, blobABase64, reducirImagen, elegirFoto, vaciarCacheFotos, nombrePlanta, prefs, VERSION } from '../core.js';
 import { TIPOS } from '../contenido.js';
 import { coleccionLocal, importarColeccion } from '../importar.js';
+import { TEMAS, ajustesTema, guardarTema, restablecerTema, muestra } from '../tema.js';
 import { rutas, ir, hoja, aviso, confirmar, cabDetalle, segmentado, filaEspecie, repintar, ico } from '../ui.js';
 
+const abiertos = new Set(['apariencia']);
+const COLORES = {
+  acento: { nombre: 'Botones y destacados', ops: ['#22c993', '#2e8b57', '#2f8fe0', '#8b6cf0', '#cf7a36', '#ec6a73', '#e0a10b', '#e85a2a', '#1f2a27'] },
+  fondo: { nombre: 'Fondo', ops: ['#ffffff', '#f5f7f6', '#fffaf3', '#f3f6ff', '#fdf3f5', '#101614', '#141414', '#171428'] },
+  texto: { nombre: 'Texto', ops: ['#1c2522', '#2b2b2b', '#0d3b2c', '#1f2a44', '#4a2c1a', '#f2f5f4', '#ffffff'] },
+  tarjeta: { nombre: 'Tarjetas', ops: ['#ffffff', '#fbfaf7', '#f0f6f3', '#f4f1ff', '#1b2420', '#1f1f1f', '#252036'] },
+  cabecera: { nombre: 'Cabecera', ops: ['#dcfaee', '#e4f0ff', '#efe8ff', '#ffefdf', '#ffe6e8', '#eceff1', '#0f2a21', '#1d1d1d'] },
+};
+const NOMBRE_ESQ = { rectas: 'Rectas', suaves: 'Suaves', redondas: 'Muy redondas' };
+const NOMBRE_LETRA = { pequena: 'Pequeña', normal: 'Normal', grande: 'Grande', enorme: 'Muy grande' };
+const MODO = { auto: 'automático', claro: 'claro', oscuro: 'oscuro' };
+
+function seccion(id, icono, titulo, resumen, cuerpo) {
+  return `<details class="ajuste" data-sec="${id}" ${abiertos.has(id) ? 'open' : ''}>
+    <summary><span class="aj-ico">${ico(icono)}</span><span class="aj-txt"><strong>${esc(titulo)}</strong><span data-resumen="${id}">${resumen}</span></span>${ico('abajo', 'tenue aj-flecha')}</summary>
+    <div class="aj-cuerpo">${cuerpo}</div></details>`;
+}
+function filaColor(k, a) {
+  const c = COLORES[k], actual = a[k];
+  return `<div class="fila-color" data-color="${k}">
+    <div class="fila-color-cab"><span>${c.nombre}</span><button class="btn-texto" data-color-auto="${k}" ${actual ? '' : 'hidden'}>Del tema</button></div>
+    <div class="muestras">${c.ops.map((v) => `<button class="muestra ${actual === v ? 'on' : ''}" style="--m:${v}" data-color-k="${k}" data-color-v="${v}" aria-label="${v}"></button>`).join('')}
+      <label class="muestra propia ${actual && !c.ops.includes(actual) ? 'on' : ''}" style="--m:${actual || 'transparent'}" aria-label="Otro color">${ico('paleta')}<input type="color" data-color-input="${k}" value="${actual || c.ops[0]}"></label></div>
+  </div>`;
+}
+const resumenApariencia = (a) => `${esc(TEMAS.find((t) => t.id === a.tema)?.nombre || 'Menta')} · modo ${MODO[a.modo]}`;
+const resumenColores = (a) => { const n = Object.keys(COLORES).filter((k) => a[k]).length; return n ? `${n} ${n === 1 ? 'color propio' : 'colores propios'}` : 'Los del tema'; };
+const resumenFondo = (a) => [a.fotoFondo ? 'Con foto' : 'Sin foto', a.transp ? `translucidez ${Math.round(a.transp * 100)} %` : 'opaco'].join(' · ');
+const resumenFormas = (a) => `Esquinas ${NOMBRE_ESQ[a.esquinas].toLowerCase()} · letra ${NOMBRE_LETRA[a.letra].toLowerCase()}`;
+
 rutas.ajustes = () => {
-  const ia = ajustesIA();
-  const a = ia.todo;
+  const a = ajustesTema();
+  const pr = prefs();
   const ciudad = store.get('ciudad', null);
   const propias = store.get('especiesPropias', []);
-  const prov = ia.proveedor;
   const vieja = coleccionLocal();
+  const ejemplo = especie('aeonium-canariense') || cat.especies[0];
   return {
     html: `${cabDetalle('Ajustes')}<div class="contenido ajustes">
-      <h2 class="seccion-tit">Asistente con IA</h2>
-      <section class="tarjeta form">
-        <div class="campo"><span>Proveedor</span>${segmentado('prov', [['gemini', 'Gemini'], ['claude', 'Claude']], prov)}</div>
-        <label>Clave de ${prov === 'claude' ? 'Claude (Anthropic)' : 'Gemini (Google)'}<input type="password" name="clave" value="${esc(a[prov + 'Clave'] || '')}" placeholder="${prov === 'claude' ? 'sk-ant-…' : 'AIza…'}" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
-        <label>Modelo<input name="modelo" list="modelos" value="${esc(a[prov + 'Modelo'] || IA_POR_DEFECTO[prov])}" autocapitalize="off" spellcheck="false"><datalist id="modelos">${MODELOS[prov].map((m) => `<option value="${m}">`).join('')}</datalist></label>
-        <p class="sub">${prov === 'claude' ? 'Consigue la clave en <a href="https://console.anthropic.com/settings/keys" target="_blank" rel="noopener">console.anthropic.com</a>. Se paga por uso (céntimos por consulta).' : 'Consigue una clave gratuita en <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">Google AI Studio</a>.'} La clave se guarda solo en este dispositivo.</p>
-        <div class="fila-botones"><button class="btn" data-guardar-ia>Guardar</button><button class="btn sec" data-probar>Probar</button></div>
-        <p class="sub" id="iaEstado">${iaLista() ? `Activo: ${nombreIA()} (${esc(ia.modelo)})` : 'Sin clave: el diagnóstico, la identificación y el chat no funcionarán.'}</p>
-      </section>
+      <h2 class="seccion-tit">Personalización</h2>
+      ${seccion('apariencia', 'paleta', 'Tema', resumenApariencia(a), `
+        <div class="rejilla-temas">${TEMAS.map((t) => { const m = muestra(t, a.modo === 'oscuro' ? 'oscuro' : 'claro'); return `<button class="tema ${t.id === a.tema ? 'on' : ''}" data-tema="${t.id}">
+          <span class="tema-muestra" style="background:${m.fondo}"><i style="background:${m.cab}"></i><b style="background:${m.tarjeta}"><u style="background:${m.acento}"></u></b></span><span>${esc(t.nombre)}</span></button>`; }).join('')}</div>
+        <div class="campo"><span>Modo</span>${segmentado('modo', [['auto', 'Automático'], ['claro', 'Claro'], ['oscuro', 'Oscuro']], a.modo)}</div>
+        <p class="sub">En automático sigue el modo claro u oscuro del iPhone.</p>`)}
+      ${seccion('colores', 'capas', 'Colores', resumenColores(a), `
+        ${Object.keys(COLORES).map((k) => filaColor(k, a)).join('')}
+        <label class="interruptor"><span>Degradado en la parte de arriba</span><input type="checkbox" data-t="degradado" ${a.degradado ? 'checked' : ''}><i></i></label>`)}
+      ${seccion('fondo', 'foto', 'Fondo y transparencia', resumenFondo(a), `
+        <div class="fila-botones"><button class="btn sec" data-foto-fondo>${ico('foto')} ${a.fotoFondo ? 'Cambiar foto' : 'Poner una foto de fondo'}</button>${a.fotoFondo ? `<button class="btn sec peligro" data-quitar-fondo>${ico('basura')} Quitar</button>` : ''}</div>
+        ${a.fotoFondo ? `<label class="deslizador">Velo sobre la foto <strong data-val="velo">${Math.round(a.velo * 100)} %</strong><input type="range" min="0" max="0.85" step="0.05" value="${a.velo}" data-r="velo"></label>` : ''}
+        <label class="deslizador">Translucidez de tarjetas y barras <strong data-val="transp">${Math.round(a.transp * 100)} %</strong><input type="range" min="0" max="0.8" step="0.05" value="${a.transp}" data-r="transp"></label>
+        <label class="interruptor"><span>Desenfocar lo que hay detrás</span><input type="checkbox" data-t="desenfoque" ${a.desenfoque ? 'checked' : ''}><i></i></label>`)}
+      ${seccion('formas', 'texto', 'Formas y letra', resumenFormas(a), `
+        <div class="campo"><span>Esquinas</span>${segmentado('esquinas', Object.entries(NOMBRE_ESQ), a.esquinas)}</div>
+        <div class="campo"><span>Tamaño de la letra</span>${segmentado('letra', Object.entries(NOMBRE_LETRA), a.letra)}</div>`)}
+      <button class="btn sec ancho" data-restablecer>${ico('rotar')} Restablecer la apariencia</button>
 
-      <h2 class="seccion-tit">Ubicación para el tiempo</h2>
-      <section class="tarjeta lista-enlaces">
-        <a href="#/tareas" data-ciudad><span>${ciudad ? esc(ciudad.nombre) + (ciudad.auto ? ' (ubicación actual)' : '') : 'Sin elegir'}</span><em class="sub">Se cambia tocando el tiempo en Tareas</em></a>
-      </section>
-
-      <h2 class="seccion-tit">Mi catálogo</h2>
-      <section class="tarjeta">
-        <p>El catálogo tiene <strong>${cat.especies.length}</strong> especies${propias.length ? `, ${propias.length} añadidas por ti` : ''}. Si falta alguna, añádela aquí.</p>
-        <div class="fila-botones"><button class="btn" data-esp-ia>${ico('chispa')} Añadir con IA</button><button class="btn sec" data-esp-mano>${ico('editar')} A mano</button></div>
+      <h2 class="seccion-tit">Plantas</h2>
+      ${seccion('nombres', 'libro', 'Nombres de las especies', pr.nombres === 'cientifico' ? 'Científico primero' : 'Común primero', `
+        ${segmentado('nombres', [['comun', 'Común primero'], ['cientifico', 'Científico primero']], pr.nombres === 'cientifico' ? 'cientifico' : 'comun')}
+        <div class="ejemplo-nombre">${pr.nombres === 'cientifico' ? `<strong class="cient">${esc(ejemplo.cientifico)}</strong><em class="comun">${esc(ejemplo.nombre)}</em>` : `<strong>${esc(ejemplo.nombre)}</strong><em>${esc(ejemplo.cientifico)}</em>`}</div>
+        <p class="sub">Se aplica a las tarjetas, listas, fichas y tareas. En tus plantas, el apodo pasa a segundo plano.</p>`)}
+      ${seccion('catalogo', 'plantas', 'Mi catálogo', `${cat.especies.length} especies${propias.length ? ` · ${propias.length} tuyas` : ''}`, `
+        <p>Si falta alguna especie, añádela aquí o pide que la sumen al catálogo fijo.</p>
+        <button class="btn ancho" data-esp-mano>${ico('mas')} Añadir una especie</button>
         ${propias.length ? `<div class="lista-propias">${propias.map((e) => filaEspecie(especie(e.id) || e)).join('')}</div>
-        <button class="btn-texto" data-exp-propias>${ico('descargar')} Exportar mis especies</button>` : ''}
-      </section>
-
-      <h2 class="seccion-tit">Avisos</h2>
-      <section class="tarjeta">
-        <p>Una web no puede enviar avisos con la app cerrada. Para que el iPhone te recuerde las tareas, añádelas a tu Calendario: se crean eventos de los próximos 60 días con alarma a las 9:00.</p>
-        <button class="btn ancho" data-ics>${ico('calendario')} Añadir tareas al Calendario</button>
-      </section>
-
-      <h2 class="seccion-tit">Traer plantas de Plantitus</h2>
-      <section class="tarjeta">
-        <p>${vieja ? `Plantitus tiene <strong>${vieja.plantas.length}</strong> ${vieja.plantas.length === 1 ? 'planta' : 'plantas'} en este iPhone. Puedes copiarlas aquí con sus fotos, zonas, historial y pautas de riego.` : 'No hay plantas de Plantitus en este navegador. Si las tienes en otro dispositivo, exporta allí una copia de Plantitus e impórtala aquí con «Importar».'}</p>
-        ${vieja ? `<button class="btn ancho" data-plantitus>${ico('subir')} Copiar mis plantas de Plantitus</button>` : ''}
-        ${store.get('importadoPlantitus', null) ? `<p class="sub">Última importación: ${esc(store.get('importadoPlantitus'))}. Las plantas ya copiadas no se duplican.</p>` : ''}
-      </section>
-
-      <h2 class="seccion-tit">Copia de seguridad</h2>
-      <section class="tarjeta">
-        <p>Tus plantas, fotos y especies se guardan solo en este dispositivo. Haz una copia de vez en cuando y guárdala en iCloud Drive o Archivos.</p>
-        <div class="fila-botones"><button class="btn" data-exportar>${ico('descargar')} Exportar</button><button class="btn sec" data-importar>${ico('subir')} Importar</button></div>
-      </section>
+        <button class="btn-texto" data-exp-propias>${ico('descargar')} Exportar mis especies</button>` : ''}`)}
+      ${seccion('tiempo', 'ubicacion', 'Ubicación para el tiempo', ciudad ? esc(ciudad.nombre) : 'Sin elegir', `
+        <p>${ciudad ? `Ahora: <strong>${esc(ciudad.nombre)}</strong>${ciudad.auto ? ' (tu ubicación)' : ''}.` : 'Aún no has elegido ubicación.'} Se cambia tocando el tiempo en la pestaña Tareas.</p>
+        <a class="btn sec ancho" href="#/tareas">Ir a Tareas</a>`)}
+      ${seccion('avisos', 'calendario', 'Avisos en el Calendario', 'Próximos 60 días', `
+        <p>Una web no puede enviar avisos con la app cerrada. Para que el iPhone te recuerde las tareas, añádelas a tu Calendario: se crean eventos con alarma a las 9:00.</p>
+        <button class="btn ancho" data-ics>${ico('calendario')} Añadir tareas al Calendario</button>`)}
 
       <h2 class="seccion-tit">Datos</h2>
-      <section class="tarjeta lista-enlaces">
-        <button data-borrar-cache><span>Vaciar la caché de fotos de Wikipedia</span>${ico('chevron', 'tenue')}</button>
-        <button class="peligro" data-borrar-todo><span>Borrar todos mis datos</span>${ico('basura')}</button>
-      </section>
-      <p class="sub centrado">Plantitus Pro ${VERSION} · Fotos de especies: Wikipedia · Tiempo: Open-Meteo</p>
+      ${seccion('plantitus', 'subir', 'Traer plantas de Plantitus', vieja ? `${vieja.plantas.length} plantas disponibles` : 'Nada que traer', `
+        <p>${vieja ? `Plantitus tiene <strong>${vieja.plantas.length}</strong> ${vieja.plantas.length === 1 ? 'planta' : 'plantas'} en este iPhone. Puedes copiarlas aquí con sus fotos, zonas, historial y pautas de riego.` : 'No hay plantas de Plantitus en este navegador. Si las tienes en otro dispositivo, exporta allí una copia de Plantitus e impórtala con «Importar».'}</p>
+        ${vieja ? `<button class="btn ancho" data-plantitus>${ico('subir')} Copiar mis plantas de Plantitus</button>` : ''}
+        ${store.get('importadoPlantitus', null) ? `<p class="sub">Última importación: ${esc(store.get('importadoPlantitus'))}. Las plantas ya copiadas no se duplican.</p>` : ''}`)}
+      ${seccion('copia', 'descargar', 'Copia de seguridad', 'Exportar o importar', `
+        <p>Tus plantas, fotos, especies y ajustes se guardan solo en este dispositivo. Haz una copia de vez en cuando y guárdala en iCloud Drive o Archivos.</p>
+        <div class="fila-botones"><button class="btn" data-exportar>${ico('descargar')} Exportar</button><button class="btn sec" data-importar>${ico('subir')} Importar</button></div>`)}
+      ${seccion('borrar', 'basura', 'Borrar datos', 'Caché de fotos y datos', `
+        <div class="lista-enlaces">
+          <button data-borrar-cache><span>Volver a buscar las fotos de las especies</span>${ico('chevron', 'tenue')}</button>
+          <button class="peligro" data-borrar-todo><span>Borrar todos mis datos</span>${ico('basura')}</button>
+        </div>`)}
+      <p class="sub centrado">Plantitus Pro ${VERSION} · Fotos de especies: Wikimedia Commons · Tiempo: Open-Meteo</p>
     </div>`,
     despues(v) {
-      let p = prov;
-      v.addEventListener('click', async (e) => {
-        const seg = e.target.closest('[data-seg="prov"] button');
-        if (seg) { const x = store.get('ia', {}); x.proveedor = seg.dataset.v; store.set('ia', x); repintar(); return; }
-        if (e.target.closest('[data-guardar-ia]')) { guardarIA(v, p); aviso('Asistente guardado'); repintar(); }
-        if (e.target.closest('[data-probar]')) {
-          guardarIA(v, p);
-          const est = $('#iaEstado', v);
-          est.textContent = 'Probando…';
-          try { const r = await preguntarIA([{ rol: 'user', texto: 'Responde solo: «Listo para cuidar tus plantas 🌿»' }], { max: 50 }); est.textContent = `✅ ${nombreIA()} responde: ${r}`; } catch (err) { est.textContent = `❌ ${err.message}`; }
+      const actualizarResumenes = () => {
+        const x = ajustesTema();
+        const set = (k, t) => { const el = $(`[data-resumen="${k}"]`, v); if (el) el.innerHTML = t; };
+        set('apariencia', resumenApariencia(x)); set('colores', resumenColores(x)); set('fondo', resumenFondo(x)); set('formas', resumenFormas(x));
+      };
+      v.addEventListener('toggle', (e) => {
+        const d = e.target.closest?.('details[data-sec]');
+        if (d) { if (d.open) abiertos.add(d.dataset.sec); else abiertos.delete(d.dataset.sec); }
+      }, true);
+      v.addEventListener('input', (e) => {
+        const r = e.target.dataset.r;
+        if (r) {
+          guardarTema({ [r]: +e.target.value });
+          const val = $(`[data-val="${r}"]`, v); if (val) val.textContent = Math.round(e.target.value * 100) + ' %';
+          actualizarResumenes();
         }
-        if (e.target.closest('[data-esp-ia]')) { const n = await anadirEspecieIA(); if (n) ir('especie/' + n.id); }
+        const ci = e.target.dataset.colorInput;
+        if (ci) {
+          guardarTema({ [ci]: e.target.value });
+          const fila = e.target.closest('.fila-color');
+          $$('.muestra', fila).forEach((m) => m.classList.remove('on'));
+          const lab = e.target.closest('.muestra'); lab.classList.add('on'); lab.style.setProperty('--m', e.target.value);
+          $('[data-color-auto]', fila).hidden = false;
+          actualizarResumenes();
+        }
+      });
+      v.addEventListener('change', (e) => {
+        const t = e.target.dataset.t;
+        if (t) { guardarTema({ [t]: e.target.checked }); actualizarResumenes(); }
+      });
+      v.addEventListener('click', async (e) => {
+        const seg = e.target.closest('[data-seg] button');
+        if (seg) {
+          const k = seg.closest('[data-seg]').dataset.seg;
+          if (k === 'nombres') { store.set('prefs', { ...prefs(), nombres: seg.dataset.v }); repintar(); return; }
+          guardarTema({ [k]: seg.dataset.v }); repintar(); return;
+        }
+        const tm = e.target.closest('[data-tema]');
+        if (tm) { guardarTema({ tema: tm.dataset.tema, acento: '', fondo: '', texto: '', tarjeta: '', cabecera: '' }); repintar(); return; }
+        const cm = e.target.closest('[data-color-k]');
+        if (cm) { guardarTema({ [cm.dataset.colorK]: cm.dataset.colorV }); repintar(); return; }
+        const ca = e.target.closest('[data-color-auto]');
+        if (ca) { guardarTema({ [ca.dataset.colorAuto]: '' }); repintar(); return; }
+        if (e.target.closest('[data-foto-fondo]')) {
+          const f = await elegirFoto();
+          if (!f) return;
+          const ant = ajustesTema().fotoFondo;
+          const id = await fotos.guardar(await reducirImagen(f, 1600, 0.82), 'fondo-' + uid());
+          if (ant) fotos.borrar(ant);
+          const x = ajustesTema();
+          guardarTema({ fotoFondo: id, transp: x.transp || 0.25, degradado: x.degradado });
+          abiertos.add('fondo'); repintar(); return;
+        }
+        if (e.target.closest('[data-quitar-fondo]')) { const ant = ajustesTema().fotoFondo; if (ant) fotos.borrar(ant); guardarTema({ fotoFondo: null }); repintar(); return; }
+        if (e.target.closest('[data-restablecer]')) {
+          if (await confirmar('¿Volver al tema Menta con los colores y formas de siempre?', { si: 'Restablecer' })) { restablecerTema(); repintar(); }
+          return;
+        }
         if (e.target.closest('[data-esp-mano]')) editarEspeciePropia(null);
         if (e.target.closest('[data-exp-propias]')) exportarPropias();
         if (e.target.closest('[data-ics]')) exportarICS();
@@ -87,8 +167,8 @@ rutas.ajustes = () => {
           avisoImportacion(r);
           ir('plantas');
         }
-        if (e.target.closest('[data-borrar-cache]')) { store.del('wiki'); aviso('Caché vaciada'); }
-        if (e.target.closest('[data-borrar-todo]') && await confirmar('Se borrarán tus plantas, sitios, fotos, favoritas y especies propias. ¿Seguro?', { si: 'Borrarlo todo', peligro: true })) {
+        if (e.target.closest('[data-borrar-cache]')) { vaciarCacheFotos(); aviso('Las fotos se volverán a buscar'); }
+        if (e.target.closest('[data-borrar-todo]') && await confirmar('Se borrarán tus plantas, sitios, fotos, favoritas, especies propias y ajustes. ¿Seguro?', { si: 'Borrarlo todo', peligro: true })) {
           for (const k of Object.keys(localStorage)) if (k.startsWith('pp.')) localStorage.removeItem(k);
           indexedDB.deleteDatabase('plantitus-pro');
           aviso('Datos borrados');
@@ -98,13 +178,6 @@ rutas.ajustes = () => {
     },
   };
 };
-function guardarIA(v, prov) {
-  const x = store.get('ia', {});
-  x.proveedor = prov;
-  x[prov + 'Clave'] = $('[name=clave]', v).value.trim();
-  x[prov + 'Modelo'] = $('[name=modelo]', v).value.trim() || IA_POR_DEFECTO[prov];
-  store.set('ia', x);
-}
 
 /* ---------- especies propias ---------- */
 const GRUPO_DEF = (g) => {
@@ -139,8 +212,8 @@ export function crearEspeciePropia({ nombre, cientifico, grupo = 'interior', luz
   if (especie(id) && !especie(id).propia) id += '-propia';
   return guardarPropia({ id, nombre, cientifico: cientifico || nombre, grupo, luz, dificultad, tags, ...GRUPO_DEF(grupo), ...resto });
 }
-export function editarEspeciePropia(id) {
-  const e = id ? especie(id) : { nombre: '', cientifico: '', grupo: 'suculenta', luz: 'sol', dificultad: 'F', tags: [], ...GRUPO_DEF('suculenta') };
+export function editarEspeciePropia(id, nombreInicial = '') {
+  const e = id ? especie(id) : { nombre: nombreInicial, cientifico: '', grupo: 'suculenta', luz: 'sol', dificultad: 'F', tags: [], ...GRUPO_DEF('suculenta') };
   const TAGS = [['end', 'Endemismo canario'], ['nat', 'Nativa de Canarias'], ['tox', 'Tóxica para mascotas'], ['int', 'Interior'], ['ext', 'Exterior'], ['flor', 'Flor vistosa'], ['colg', 'Colgante'], ['com', 'Comestible'], ['aire', 'Purifica el aire']];
   const mesesSel = (nom, val, ops) => `<div class="meses-sel" data-meses="${nom}">${'EFMAMJJASOND'.split('').map((l, i) => `<button type="button" data-i="${i}" class="m-${val[i]}">${l}</button>`).join('')}</div><p class="sub">${ops}</p>`;
   const h = hoja(`<form class="form">
@@ -191,44 +264,6 @@ export function editarEspeciePropia(id) {
     ir('especie/' + n.id);
   };
 }
-/* Pide a la IA la ficha de una especie y la añade al catálogo propio. */
-export async function anadirEspecieIA(nombreInicial = '') {
-  if (!iaLista()) { aviso('Añade antes una clave de IA en Ajustes'); return null; }
-  return new Promise((ok) => {
-    let res = null;
-    const h = hoja(`<form class="form"><label>Nombre común o científico<input name="q" value="${esc(nombreInicial)}" required placeholder="Aeonium mascaense"></label>
-      <button class="btn ancho">${ico('chispa')} Crear ficha con ${nombreIA()}</button><p class="sub" data-estado></p></form>`, { titulo: 'Añadir especie con IA', alCerrar: () => ok(res) });
-    $('form', h.el).onsubmit = async (ev) => {
-      ev.preventDefault();
-      const q = new FormData(ev.target).get('q').trim();
-      const est = $('[data-estado]', h.el);
-      est.textContent = 'Preparando la ficha…';
-      try {
-        const grupos = Object.entries(cat.grupos).map(([k, g]) => `${k} (${g.nombre})`).join(', ');
-        const j = await preguntarIAJSON(`Crea la ficha de cultivo de la planta «${q}» para un aficionado en Canarias. Devuelve {"nombre":"nombre común en español (de Canarias si lo tiene)","cientifico":"nombre científico aceptado","grupo":"una de: ${grupos}","luz":"sombra|semi|parcial|sol","dificultad":"F|M|D","rv":días entre riegos en temporada de crecimiento,"ri":días entre riegos en reposo (0 si no se riega),"meses":"12 letras enero→diciembre: N normal, R reposo, S sin riego","abono":semanas entre abonos (0 si no),"abonoMeses":"12 dígitos 1/0 enero→diciembre","tmin":temperatura mínima en ºC,"hum":humedad ideal %,"tags":["end" si es endemismo canario,"nat" si es nativa de Canarias,"mac" si es macaronésica,"tox" si es tóxica para mascotas,"int","ext","flor","colg","com","arom","inv" si es invasora en Canarias]}.`);
-        const g = cat.grupos[j.grupo] ? j.grupo : 'interior';
-        const limpio = {
-          nombre: String(j.nombre || q).slice(0, 80), cientifico: String(j.cientifico || q).slice(0, 80), grupo: g,
-          luz: cat.luz[j.luz] ? j.luz : 'semi', dificultad: ['F', 'M', 'D'].includes(j.dificultad) ? j.dificultad : 'M',
-          tags: Array.isArray(j.tags) ? j.tags.filter((t) => ['end', 'nat', 'mac', 'tox', 'int', 'ext', 'flor', 'colg', 'com', 'arom', 'inv', 'aire', 'sombra', 'sueno'].includes(t)) : [],
-        };
-        const extra = {};
-        if (+j.rv > 0) extra.rv = Math.round(+j.rv);
-        if (+j.ri >= 0) extra.ri = Math.round(+j.ri);
-        if (/^[NRS]{12}$/.test(j.meses || '')) extra.meses = j.meses;
-        if (+j.abono >= 0) extra.abono = Math.round(+j.abono);
-        if (/^[01]{12}$/.test(j.abonoMeses || '')) extra.abonoMeses = j.abonoMeses;
-        if (Number.isFinite(+j.tmin)) extra.tmin = Math.round(+j.tmin);
-        if (Number.isFinite(+j.hum)) extra.hum = Math.round(+j.hum);
-        const ya = cat.especies.find((x) => x.cientifico.toLowerCase() === limpio.cientifico.toLowerCase());
-        if (ya) { res = ya; aviso(`${ya.nombre} ya estaba en el catálogo`); h.cerrar(); return; }
-        res = crearEspeciePropia({ ...limpio, ...extra });
-        aviso(`${res.nombre} añadida al catálogo`);
-        h.cerrar();
-      } catch (err) { est.textContent = err.message; }
-    };
-  });
-}
 function exportarPropias() {
   const l = store.get('especiesPropias', []);
   const g = (e) => `${e.nombre}|${e.cientifico}|${e.grupo}|${e.luz}|${e.dificultad}|${e.tags.join(',')}|rv=${e.rv};ri=${e.ri};meses=${e.meses};tmin=${e.tmin}`;
@@ -248,7 +283,7 @@ export function exportarICS() {
     const d = f.replace(/-/g, '');
     const tipos = [...new Set(l.map((t) => TIPOS[t.tipo].nombre))].join(', ');
     return ['BEGIN:VEVENT', `UID:plantitus-pro-${d}@plantitus`, `DTSTAMP:${ahora}`, `DTSTART;VALUE=DATE:${d}`, `DTEND;VALUE=DATE:${sumar(f, 1).replace(/-/g, '')}`,
-      `SUMMARY:${escICS(`🌿 Plantas: ${tipos}`)}`, `DESCRIPTION:${escICS(l.map((t) => `${TIPOS[t.tipo].verbo}: ${t.planta.nombre}${sitio(t.planta.sitio) ? ` (${sitio(t.planta.sitio).nombre})` : ''}`).join('\n'))}`,
+      `SUMMARY:${escICS(`🌿 Plantas: ${tipos}`)}`, `DESCRIPTION:${escICS(l.map((t) => `${TIPOS[t.tipo].verbo}: ${nombrePlanta(t.planta)}${sitio(t.planta.sitio) ? ` (${sitio(t.planta.sitio).nombre})` : ''}`).join('\n'))}`,
       'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Tareas de plantas', 'TRIGGER:PT9H', 'END:VALARM', 'END:VEVENT'].join('\r\n');
   });
   const ics = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Plantitus Pro//ES', 'CALSCALE:GREGORIAN', 'X-WR-CALNAME:Plantitus Pro', ...ev, 'END:VCALENDAR'].join('\r\n');
@@ -271,6 +306,7 @@ async function exportarCopia() {
     app: 'plantitus-pro', version: 1, fecha: new Date().toISOString(),
     plantas: datos.plantas, sitios: datos.sitios, favoritos: datos.favoritos,
     especiesPropias: store.get('especiesPropias', []), ciudad: store.get('ciudad', null), fotos: f,
+    prefs: store.get('prefs', {}), tema: { ...store.get('tema', {}), fotoFondo: null }, fotoEsp: store.get('fotoEsp', {}),
   };
   descargar(new Blob([JSON.stringify(copia)], { type: 'application/json' }), `plantitus-pro-${hoy()}.json`);
   aviso('Copia exportada');
@@ -294,6 +330,9 @@ async function importarCopia() {
     datos.plantas = c.plantas || []; datos.sitios = c.sitios || datos.sitios; datos.favoritos = c.favoritos || [];
     store.set('especiesPropias', c.especiesPropias || []);
     if (c.ciudad) store.set('ciudad', c.ciudad);
+    if (c.prefs) store.set('prefs', c.prefs);
+    if (c.fotoEsp) store.set('fotoEsp', c.fotoEsp);
+    if (c.tema) guardarTema(c.tema);
     for (const [k, b64] of Object.entries(c.fotos || {})) {
       const bin = atob(b64); const u = new Uint8Array(bin.length);
       for (let j = 0; j < bin.length; j++) u[j] = bin.charCodeAt(j);

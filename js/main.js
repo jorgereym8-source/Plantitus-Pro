@@ -1,6 +1,7 @@
 /* Arranque de Plantitus Pro. */
 import { cargarCatalogo, $ } from './core.js';
 import { pintar } from './ui.js';
+import { aplicarTema } from './tema.js';
 import './vistas/tareas.js';
 import './vistas/diagnostico.js';
 import './vistas/buscar.js';
@@ -9,6 +10,8 @@ import './vistas/plantas.js';
 import './vistas/ajustes.js';
 
 async function arrancar() {
+  try { localStorage.removeItem('pp.ia'); } catch { /* claves del asistente, que ya no existe */ }
+  aplicarTema();
   try {
     await cargarCatalogo();
   } catch (e) {

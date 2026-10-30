@@ -1,9 +1,9 @@
-/* Service worker: la app funciona sin conexión (salvo tiempo, fotos de Wikipedia nuevas e IA).
+/* Service worker: la app funciona sin conexión (salvo el tiempo y las fotos nuevas de las especies).
  * Sube el número de CACHE en cada cambio para que los iPhones descarguen la versión nueva. */
-const CACHE = 'plantitus-pro-v1';
+const CACHE = 'plantitus-pro-v2';
 const ARCHIVOS = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
-  'js/main.js', 'js/core.js', 'js/ui.js', 'js/iconos.js', 'js/contenido.js', 'js/importar.js',
+  'js/main.js', 'js/core.js', 'js/ui.js', 'js/iconos.js', 'js/contenido.js', 'js/importar.js', 'js/tema.js',
   'js/vistas/tareas.js', 'js/vistas/diagnostico.js', 'js/vistas/buscar.js', 'js/vistas/herramientas.js',
   'js/vistas/plantas.js', 'js/vistas/ajustes.js', 'js/vistas/guia.js',
   'data/especies.json', 'data/enfermedades.json',
@@ -29,7 +29,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   // fotos de Wikimedia: se guardan para verlas sin conexión
-  if (url.hostname === 'upload.wikimedia.org') {
+  if (url.hostname === 'upload.wikimedia.org' || (url.hostname === 'commons.wikimedia.org' && url.pathname.includes('Special:FilePath'))) {
     e.respondWith(caches.open('plantitus-pro-fotos').then(async (c) => {
       const r = await c.match(e.request);
       if (r) return r;

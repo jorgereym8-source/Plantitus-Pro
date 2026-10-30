@@ -2,16 +2,16 @@
 const P = {
   // barra inferior
   tareas: '<circle cx="12" cy="13" r="7.5"/><path d="M12 9.5V13l2.5 2"/><path d="M5 4.5 3 6.5M19 4.5l2 2M8 20.5l-1.5 1.5M16 20.5l1.5 1.5"/>',
-  tareasOn: '<circle cx="12" cy="13" r="7.5" fill="currentColor"/><path d="M12 9.5V13l2.5 2" stroke="#fff"/><path d="M5 4.5 3 6.5M19 4.5l2 2M8 20.5l-1.5 1.5M16 20.5l1.5 1.5"/>',
+  tareasOn: '<circle cx="12" cy="13" r="7.5" fill="currentColor"/><path d="M12 9.5V13l2.5 2" style="stroke:var(--tarjeta-solida)"/><path d="M5 4.5 3 6.5M19 4.5l2 2M8 20.5l-1.5 1.5M16 20.5l1.5 1.5"/>',
   botiquin: '<rect x="3" y="7" width="18" height="13" rx="3"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7M12 10.5v6M9 13.5h6"/>',
-  botiquinOn: '<rect x="3" y="7" width="18" height="13" rx="3" fill="currentColor"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path d="M12 10.5v6M9 13.5h6" stroke="#fff"/>',
+  botiquinOn: '<rect x="3" y="7" width="18" height="13" rx="3" fill="currentColor"/><path d="M9 7V5.5A1.5 1.5 0 0 1 10.5 4h3A1.5 1.5 0 0 1 15 5.5V7"/><path d="M12 10.5v6M9 13.5h6" style="stroke:var(--tarjeta-solida)"/>',
   buscar: '<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
   herramientas: '<path d="M6 11h12l-1.4 8.2a1.5 1.5 0 0 1-1.5 1.3H8.9a1.5 1.5 0 0 1-1.5-1.3Z"/><path d="M9.5 11c-.8-2.5-2.5-4-4.5-4.5M14.5 11c.4-3 2-5.5 4.5-6.5M12 11V5.5"/><path d="m8.5 4 2 2.5M10.5 4l-2 2.5"/>',
   herramientasOn: '<path d="M6 11h12l-1.4 8.2a1.5 1.5 0 0 1-1.5 1.3H8.9a1.5 1.5 0 0 1-1.5-1.3Z" fill="currentColor"/><path d="M9.5 11c-.8-2.5-2.5-4-4.5-4.5M14.5 11c.4-3 2-5.5 4.5-6.5M12 11V5.5"/>',
   plantas: '<path d="M12 21v-7"/><path d="M12 14c-4.5 0-7.5-2.5-7.5-7 4.5 0 7.5 2.5 7.5 7Z"/><path d="M12 12c0-5 3-8 8-8 0 5-3 8-8 8Z"/>',
   plantasOn: '<path d="M12 21v-7"/><path d="M12 14c-4.5 0-7.5-2.5-7.5-7 4.5 0 7.5 2.5 7.5 7Z" fill="currentColor"/><path d="M12 12c0-5 3-8 8-8 0 5-3 8-8 8Z" fill="currentColor"/>',
   // generales
-  ajustes: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.8l1.6 1.9 2.4-.5.8 2.3 2.3.8-.5 2.4 1.9 1.6-1.9 1.6.5 2.4-2.3.8-.8 2.3-2.4-.5L12 21.2l-1.6-1.9-2.4.5-.8-2.3-2.3-.8.5-2.4L3.5 12l1.9-1.6-.5-2.4 2.3-.8.8-2.3 2.4.5Z"/>',
+  ajustes: '<path d="M4 6.5h8.5M17.5 6.5H20M4 12h2.5M11.5 12H20M4 17.5h10.5M19.5 17.5h.5"/><circle cx="15" cy="6.5" r="2.4"/><circle cx="9" cy="12" r="2.4"/><circle cx="17" cy="17.5" r="2.4"/>',
   mas: '<path d="M12 5v14M5 12h14"/>',
   puntos: '<circle cx="6" cy="12" r="1.3" fill="currentColor"/><circle cx="12" cy="12" r="1.3" fill="currentColor"/><circle cx="18" cy="12" r="1.3" fill="currentColor"/>',
   masCirculo: '<circle cx="12" cy="12" r="9.5"/><circle cx="7.5" cy="12" r="1.1" fill="currentColor"/><circle cx="12" cy="12" r="1.1" fill="currentColor"/><circle cx="16.5" cy="12" r="1.1" fill="currentColor"/>',
@@ -26,7 +26,7 @@ const P = {
   corazonMas: '<path d="M12 20s-7.5-4.6-7.5-10.2A4.3 4.3 0 0 1 12 7a4.3 4.3 0 0 1 7.5 2.8c0 1-.2 1.9-.6 2.8"/><path d="M18 15v6M15 18h6"/>',
   camara: '<path d="M4 8h3l1.5-2.5h7L17 8h3v11H4Z"/><circle cx="12" cy="13.3" r="3.6"/>',
   check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
-  ubicacion: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="2.4" fill="#fff" stroke="none"/>',
+  ubicacion: '<path d="M12 21s-6.5-6-6.5-11a6.5 6.5 0 0 1 13 0c0 5-6.5 11-6.5 11Z" fill="currentColor" stroke="none"/><circle cx="12" cy="10" r="2.4" stroke="none" style="fill:var(--tarjeta-solida)"/>',
   regadera: '<path d="M5 9h9v8.5A1.5 1.5 0 0 1 12.5 19h-6A1.5 1.5 0 0 1 5 17.5Z" fill="currentColor" stroke="none"/><path d="M14 11.5 20 8M5 11c-1.5-.3-2.5-1.5-2-3M8 9V6.5h3V9"/>',
   regaderaLinea: '<path d="M5 9h9v8.5A1.5 1.5 0 0 1 12.5 19h-6A1.5 1.5 0 0 1 5 17.5Z"/><path d="M14 11.5 20 8M5 11c-1.5-.3-2.5-1.5-2-3M8 9V6.5h3V9"/>',
   gota: '<path d="M12 3.5s-6 6.7-6 11a6 6 0 0 0 12 0c0-4.3-6-11-6-11Z" fill="currentColor" stroke="none"/>',
@@ -64,8 +64,12 @@ const P = {
   regla: '<path d="M3 16 16 3l5 5L8 21Z"/><path d="m7 12 2 2M10 9l2 2M13 6l2 2"/>',
   diamante: '<path d="M6 4h12l3.5 5L12 20.5 2.5 9Z"/><path d="M2.5 9h19M9 4l-2 5 5 11.5L17 9l-2-5"/>',
   copia: '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5.5A1.5 1.5 0 0 0 14.5 4h-9A1.5 1.5 0 0 0 4 5.5v9A1.5 1.5 0 0 0 5.5 16H8"/>',
-  hecho: '<circle cx="12" cy="12" r="9.5" fill="currentColor" stroke="none"/><path d="m7.5 12.3 3 3 6-6.3" stroke="#fff" stroke-width="2.2"/>',
+  hecho: '<circle cx="12" cy="12" r="9.5" fill="currentColor" stroke="none"/><path d="m7.5 12.3 3 3 6-6.3" stroke-width="2.2" style="stroke:var(--sobre-acento)"/>',
   pendiente: '<circle cx="12" cy="12" r="9"/>',
+  paleta: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1.2-1-1.6-1-2.6 0-1 .8-1.7 1.8-1.7h2.2a3.7 3.7 0 0 0 3.7-3.8C20.5 6.8 16.7 3.5 12 3.5Z"/><circle cx="7.6" cy="11" r="1.2" fill="currentColor"/><circle cx="10" cy="7.3" r="1.2" fill="currentColor"/><circle cx="14.6" cy="7.4" r="1.2" fill="currentColor"/>',
+  texto: '<path d="M5 19 10.5 5h1L17 19M7.2 14h7.6"/><path d="M19 9v10"/>',
+  capas: '<path d="m12 4 8.5 4.5L12 13 3.5 8.5Z"/><path d="m3.5 12.5 8.5 4.5 8.5-4.5M3.5 16.5 12 21l8.5-4.5"/>',
+  foto: '<rect x="3.5" y="5" width="17" height="14" rx="2.5"/><circle cx="9" cy="10" r="1.8"/><path d="m4 17 5-4.5 3.5 3 2.5-2 5 3.5"/>',
   reloj: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
 };
 

@@ -1,9 +1,9 @@
-/* Pestaña Encontrar planta: buscador, identificación, colecciones, selección del mes y fichas. */
-import { $, $$, esc, cat, norm, especie, grupo, buscarEspecies, MESES, datos, esFavorito, wiki, reducirImagen, elegirFoto, blobABase64, preguntarIAJSON, iaLista, activarImagenes, origenTxt } from '../core.js';
+/* Pestaña Encontrar planta: buscador, colecciones, selección del mes y fichas. */
+import { $, esc, cat, especie, grupo, buscarEspecies, MESES, datos, esFavorito, descripcionEspecie, reducirImagen, elegirFoto, fotos, fotosPropiasEsp, olvidarFotoEspecie, repintarImagenes, activarImagenes, origenTxt, nombres, nombreEsp } from '../core.js';
 import { COLECCIONES, SELECCION } from '../contenido.js';
-import { rutas, ir, hoja, aviso, cabRaiz, cabDetalle, tarjetaEspecie, filaEspecie, chatHTML, activarChat, repintar, ico } from '../ui.js';
+import { rutas, ir, aviso, menu, cabRaiz, cabDetalle, tarjetaEspecie, filaEspecie, repintar, ico } from '../ui.js';
 import { guiaEspecie } from './guia.js';
-import { nuevaPlanta, formularioPlanta } from './plantas.js';
+import { nuevaPlanta } from './plantas.js';
 
 const idDe = (cient) => cat.especies.find((e) => e.cientifico === cient)?.id;
 
@@ -16,8 +16,7 @@ rutas.buscar = () => {
     html: `${cabRaiz('Encontrar planta', { fav: true })}
     <div class="contenido">
       <div class="fila-busqueda grande">
-        <a class="buscador-falso" href="#/resultados">${ico('buscar')}<span>Buscar</span></a>
-        <button class="btn identificar" data-identificar>${ico('camara')} Identificar</button>
+        <a class="buscador-falso" href="#/resultados">${ico('buscar')}<span>Buscar entre ${cat.especies.length} especies</span></a>
       </div>
       <a class="tarjeta-buscador" href="#/buscador">
         <span class="sello">${ico('filtro')}</span>
@@ -31,9 +30,6 @@ rutas.buscar = () => {
       <div class="rejilla-esp">${destacadasCanarias.map(tarjetaEspecie).join('')}</div>
       <p class="sub centrado">${cat.especies.length} especies en el catálogo</p>
     </div>`,
-    despues(v) {
-      $('[data-identificar]', v).onclick = () => identificarConFoto();
-    },
   };
 };
 
@@ -50,7 +46,7 @@ rutas.resultados = () => ({
       const q = input.value.trim();
       const l = q ? buscarEspecies(q).slice(0, 80) : [];
       res.innerHTML = q
-        ? (l.length ? l.map((e) => filaEspecie(e)).join('') : `<div class="vacio"><p>No hay ninguna especie con «${esc(q)}».</p>${iaLista() ? `<button class="btn" data-ia>${ico('chispa')} Añadirla al catálogo con IA</button>` : '<p class="sub">Puedes añadirla en Ajustes → Mi catálogo.</p>'}</div>`)
+        ? (l.length ? l.map((e) => filaEspecie(e)).join('') : `<div class="vacio"><p>No hay ninguna especie con «${esc(q)}».</p><button class="btn" data-mano>${ico('editar')} Añadirla a mi catálogo</button><p class="sub">También puedes pedir que la añadan al catálogo fijo.</p></div>`)
         : `<p class="sub">Busca entre ${cat.especies.length} especies: cactus, suculentas, flora canaria, plantas de interior, aromáticas y huerto.</p>`;
       activarImagenes(res);
     };
@@ -58,11 +54,7 @@ rutas.resultados = () => ({
     pintarRes();
     setTimeout(() => input.focus(), 100);
     res.addEventListener('click', async (e) => {
-      if (e.target.closest('[data-ia]')) {
-        const { anadirEspecieIA } = await import('./ajustes.js');
-        const nueva = await anadirEspecieIA(input.value.trim());
-        if (nueva) ir('especie/' + nueva.id);
-      }
+      if (e.target.closest('[data-mano]')) (await import('./ajustes.js')).editarEspeciePropia(null, input.value.trim());
     });
   },
 });
@@ -71,7 +63,7 @@ rutas.resultados = () => ({
 rutas.coleccion = (id) => {
   const c = COLECCIONES.find((x) => x.id === id);
   if (!c) return rutas.buscar();
-  const lista = cat.especies.filter(c.filtro).sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+  const lista = cat.especies.filter(c.filtro).sort((a, b) => nombreEsp(a).localeCompare(nombreEsp(b), 'es'));
   return { html: `${cabDetalle(c.nombre)}<div class="contenido"><p class="sub centrado">${lista.length} especies</p><div class="rejilla-esp">${lista.map(tarjetaEspecie).join('')}</div></div>` };
 };
 rutas.favoritos = () => {
@@ -128,27 +120,28 @@ rutas.especie = async (id) => {
   const fav = esFavorito(e.id);
   const mias = datos.plantas.filter((p) => p.especie === e.id);
   const o = origenTxt(e);
+  const [n1, n2, cient] = nombres(e);
   return {
     html: `<div class="cabecera-foto" data-wiki="${esc(e.cientifico)}">
         ${cabDetalle('', { transparente: true, derecha: `<button class="btn-icono fav-cab ${fav ? 'on' : ''}" data-fav="${esc(e.id)}" aria-label="Favorita">${ico(fav ? 'corazonOn' : 'corazon')}</button>` })}
+        <button class="foto-cambiar" data-foto-esp aria-label="Cambiar la foto de la especie">${ico('foto')}</button>
       </div>
       <div class="contenido ficha">
-        <h1 class="ficha-nombre">${esc(e.nombre)}</h1>
-        <p class="ficha-cient">${esc(e.cientifico)}</p>
+        <h1 class="ficha-nombre ${cient ? 'cient' : ''}">${esc(n1)}</h1>
+        <p class="ficha-cient ${cient ? 'comun' : ''}">${esc(n2)}</p>
         <p class="ficha-grupo">${esc(g.nombre)}${o ? ` · <span class="verde">${esc(o)}</span>` : ''}${e.propia ? ' · Añadida por ti' : ''}</p>
         ${mias.length ? `<a class="aviso-mia" href="#/planta/${esc(mias[0].id)}">${ico('plantasOn')} Tienes ${mias.length === 1 ? 'esta planta' : `${mias.length} plantas de esta especie`} ${ico('chevron')}</a>` : ''}
         <section class="tarjeta descripcion" id="wikiTxt"><p class="sub">Cargando descripción…</p></section>
         ${guiaEspecie(e)}
-        ${chatHTML('esp-' + e.id, { titulo: `Pregunta sobre ${e.nombre}`, sugerencias: ['¿Cómo se reproduce?', '¿Puede vivir en la azotea?', '¿Qué sustrato le pongo?'] })}
         ${e.propia ? `<div class="fila-botones"><button class="btn sec" data-editar-esp>${ico('editar')} Editar especie</button></div>` : ''}
       </div>
       <div class="barra-accion"><button class="btn ancho" data-anadir>${ico('mas')} Añadir a mis plantas</button></div>`,
     async despues(v) {
-      activarChat(v, 'esp-' + e.id, `Especie: ${e.nombre} (${e.cientifico}), ${g.nombre}. Pauta de la app: riego cada ${e.rv} días en temporada; luz ${cat.luz[e.luz]}; mínima ${e.tmin} °C.`);
       $('[data-anadir]', v).onclick = () => nuevaPlanta(e.id);
       const ed = $('[data-editar-esp]', v);
       if (ed) ed.onclick = async () => (await import('./ajustes.js')).editarEspeciePropia(e.id);
-      const w = await wiki(e.cientifico);
+      $('[data-foto-esp]', v).onclick = () => cambiarFotoEspecie(e, v);
+      const w = await descripcionEspecie(e.cientifico);
       const box = $('#wikiTxt', v);
       if (!box) return;
       if (w?.texto) box.innerHTML = `<p>${esc(w.texto)}</p>${w.url ? `<a class="enlace" href="${esc(w.url)}" target="_blank" rel="noopener">Leer más en Wikipedia ${ico('chevron')}</a>` : ''}`;
@@ -157,57 +150,28 @@ rutas.especie = async (id) => {
   };
 };
 
-/* ---------- identificar con foto ---------- */
-export async function identificarConFoto() {
-  if (!iaLista()) {
-    const h = hoja(`<p>Para identificar plantas con una foto hace falta el asistente con IA. Añade una clave gratuita de Gemini o una de Claude en Ajustes.</p><a class="btn ancho" href="#/ajustes">Ir a Ajustes</a>`, { titulo: 'Identificar planta' });
-    $('a', h.el).onclick = () => h.cerrar();
-    return;
-  }
-  const f = await elegirFoto({ camara: true });
-  if (!f) return;
-  const blob = await reducirImagen(f, 1024, 0.8);
-  const url = URL.createObjectURL(blob);
-  const h = hoja(`<div class="ident"><div class="ident-foto" style="background-image:url(${url})"><span class="escaneo"></span></div><div class="ident-res"><p class="cargando">${ico('chispa')} Identificando…</p></div></div>`, { titulo: 'Identificar planta', clase: 'alta' });
-  let res;
-  try {
-    res = await preguntarIAJSON(`Identifica la planta de la foto. Devuelve {"candidatos":[{"nombre":"nombre común en español","cientifico":"nombre científico aceptado","confianza":0-100,"motivo":"rasgos visibles que lo indican, 1 frase"}],"salud":"1 frase sobre si se ve sana o con algún problema","consejo":"1 consejo de cuidado"} con 1 a 3 candidatos de más a menos probable. Si no es una planta, candidatos vacío.`, [{ base64: await blobABase64(blob), tipo: 'image/jpeg' }]);
-  } catch (e) {
-    $('.ident-res', h.el).innerHTML = `<p class="error">${esc(e.message)}</p>`;
-    return;
-  }
-  const cands = (res.candidatos || []).map((c) => ({ ...c, e: emparejar(c) }));
-  $('.escaneo', h.el)?.remove();
-  $('.ident-res', h.el).innerHTML = cands.length ? `
-    ${cands.map((c, i) => `<div class="cand ${i === 0 ? 'primero' : ''}">
-      ${c.e ? `<span class="mini-foto" data-wiki="${esc(c.e.cientifico)}"></span>` : `<span class="mini-foto sin-foto"></span>`}
-      <div class="txt"><strong>${esc(c.e?.nombre || c.nombre)}</strong><em>${esc(c.e?.cientifico || c.cientifico)}</em><span class="meta">${esc(c.motivo || '')}</span></div>
-      <span class="confianza" style="--p:${Math.max(0, Math.min(100, +c.confianza || 0))}">${Math.round(+c.confianza || 0)} %</span>
-      <div class="cand-acc">${c.e ? `<a class="btn mini sec" href="#/especie/${encodeURIComponent(c.e.id)}">Ver ficha</a><button class="btn mini" data-add="${i}">Añadir</button>` : `<button class="btn mini sec" data-cat="${i}">${ico('chispa')} Añadir al catálogo</button>`}</div>
-    </div>`).join('')}
-    ${res.salud ? `<p class="ident-nota">${ico('botiquin', 'verde')} ${esc(res.salud)}</p>` : ''}
-    ${res.consejo ? `<p class="ident-nota">${ico('chispa', 'verde')} ${esc(res.consejo)}</p>` : ''}`
-    : '<p>No se ha reconocido ninguna planta. Prueba con una foto más cercana y con buena luz.</p>';
-  activarImagenes(h.el);
-  h.el.addEventListener('click', async (ev) => {
-    const a = ev.target.closest('[data-add]');
-    if (a) { h.cerrar(); formularioPlanta({ especie: cands[+a.dataset.add].e.id, fotoBlob: blob }); }
-    const c = ev.target.closest('[data-cat]');
-    if (c) {
-      const { anadirEspecieIA } = await import('./ajustes.js');
-      h.cerrar();
-      const nueva = await anadirEspecieIA(cands[+c.dataset.cat].cientifico || cands[+c.dataset.cat].nombre);
-      if (nueva) formularioPlanta({ especie: nueva.id, fotoBlob: blob });
-    }
-    if (ev.target.closest('a[href]')) h.cerrar();
-  });
-}
-function emparejar(c) {
-  const n = norm(c.cientifico || '').replace(/['‘’"]/g, '').trim();
-  if (!n) return null;
-  const binomio = n.split(/\s+/).slice(0, 2).join(' ');
-  return cat.especies.find((e) => norm(e.cientifico) === n)
-    || cat.especies.find((e) => norm(e.cientifico).replace(/['‘’"]/g, '').startsWith(binomio))
-    || cat.especies.find((e) => (e.alias || []).some((a) => norm(a) === n))
-    || null;
+/* ---------- corregir la foto de una especie ---------- */
+function cambiarFotoEspecie(e, v) {
+  const propia = fotosPropiasEsp.get(e.cientifico);
+  const ops = [
+    { texto: 'Usar una foto mía', icono: 'camara', accion: async () => {
+      const f = await elegirFoto();
+      if (!f) return;
+      const id = await fotos.guardar(await reducirImagen(f, 1000));
+      if (propia && propia !== 'ninguna') fotos.borrar(propia);
+      fotosPropiasEsp.set(e.cientifico, id);
+      aviso('Foto cambiada'); repintarImagenes(v);
+    } },
+    { texto: 'Quitar la foto (está mal)', icono: 'cerrar', accion: () => {
+      if (propia && propia !== 'ninguna') fotos.borrar(propia);
+      fotosPropiasEsp.set(e.cientifico, 'ninguna');
+      aviso('Foto quitada'); repintarImagenes(v);
+    } },
+  ];
+  if (propia) ops.push({ texto: 'Volver a la foto de Wikimedia', icono: 'rotar', accion: () => {
+    if (propia !== 'ninguna') fotos.borrar(propia);
+    fotosPropiasEsp.set(e.cientifico, null); olvidarFotoEspecie(e.cientifico);
+    repintarImagenes(v);
+  } });
+  menu(ops, `Foto de ${nombreEsp(e)}`);
 }
