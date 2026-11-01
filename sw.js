@@ -1,11 +1,11 @@
 /* Service worker: la app funciona sin conexión (salvo el tiempo y las fotos nuevas de las especies).
  * Sube el número de CACHE en cada cambio para que los iPhones descarguen la versión nueva. */
-const CACHE = 'plantitus-pro-v2';
+const CACHE = 'plantitus-pro-v3';
 const ARCHIVOS = [
   './', 'index.html', 'styles.css', 'manifest.webmanifest',
   'js/main.js', 'js/core.js', 'js/ui.js', 'js/iconos.js', 'js/contenido.js', 'js/importar.js', 'js/tema.js',
   'js/vistas/tareas.js', 'js/vistas/diagnostico.js', 'js/vistas/buscar.js', 'js/vistas/herramientas.js',
-  'js/vistas/plantas.js', 'js/vistas/ajustes.js', 'js/vistas/guia.js',
+  'js/vistas/plantas.js', 'js/vistas/ajustes.js', 'js/vistas/guia.js', 'js/vistas/pauta.js',
   'data/especies.json', 'data/enfermedades.json',
   'icons/icon-180.png', 'icons/icon-192.png', 'icons/icon-512.png', 'icons/favicon-32.png',
 ];

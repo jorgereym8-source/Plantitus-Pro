@@ -1,10 +1,11 @@
 /* Ajustes: apariencia, nombres, ubicación, catálogo propio, calendario y copia de seguridad.
  * Cada bloque es un desplegable para que la página no se haga larga. */
-import { $, $$, esc, store, cat, slug, uid, hoy, sumar, datos, especie, refrescarCatalogo, tareasEntre, sitio, fotos, blobABase64, reducirImagen, elegirFoto, vaciarCacheFotos, nombrePlanta, prefs, VERSION } from '../core.js';
+import { $, $$, esc, store, cat, slug, uid, hoy, sumar, datos, especie, refrescarCatalogo, tareasEntre, sitio, fotos, blobABase64, reducirImagen, elegirFoto, vaciarCacheFotos, nombrePlanta, prefs, modosRiego, guardarModoRiego, planta, guardarPlanta, intervaloRiego, MESES, VERSION } from '../core.js';
 import { TIPOS } from '../contenido.js';
 import { coleccionLocal, importarColeccion } from '../importar.js';
 import { TEMAS, ajustesTema, guardarTema, restablecerTema, muestra } from '../tema.js';
 import { rutas, ir, hoja, aviso, confirmar, cabDetalle, segmentado, filaEspecie, repintar, ico } from '../ui.js';
+import { mesesSel } from './pauta.js';
 
 const abiertos = new Set(['apariencia']);
 const COLORES = {
@@ -36,12 +37,40 @@ const resumenColores = (a) => { const n = Object.keys(COLORES).filter((k) => a[k
 const resumenFondo = (a) => [a.fotoFondo ? 'Con foto' : 'Sin foto', a.transp ? `translucidez ${Math.round(a.transp * 100)} %` : 'opaco'].join(' · ');
 const resumenFormas = (a) => `Esquinas ${NOMBRE_ESQ[a.esquinas].toLowerCase()} · letra ${NOMBRE_LETRA[a.letra].toLowerCase()}`;
 
+function resumenModo(m) {
+  const n = intervaloRiego(m);
+  return `En ${MESES[new Date().getMonth()]}: ${n ? `cada ${n} días` : 'sin riego'}`;
+}
+/* Elige qué plantas usan un modo de riego. */
+function asignarModo(id) {
+  const m = modosRiego().find((x) => x.id === id);
+  const ps = datos.plantas;
+  if (!ps.length) { aviso('Primero añade alguna planta'); return; }
+  const usa = (p) => p.recordatorios?.riego?.modo === id && !p.recordatorios.riego.cada;
+  const otro = (p) => modosRiego().find((x) => x.id === p.recordatorios?.riego?.modo && x.id !== id);
+  const h = hoja(`<form class="form"><p class="sub">Marca las plantas que se riegan con «${esc(m.nombre)}». Las que desmarques vuelven a seguir la guía de su especie.</p>
+    <div class="lista-marcar">${ps.map((p) => `<label class="marcar"><input type="checkbox" name="p" value="${esc(p.id)}" ${usa(p) ? 'checked' : ''}><span class="mini-foto" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(especie(p.especie)?.cientifico || '')}"></span><span class="txt"><strong>${esc(nombrePlanta(p))}</strong><em class="sub comun">${esc(sitio(p.sitio)?.nombre || 'Sin sitio')}${otro(p) ? ` · ahora «${esc(otro(p).nombre)}»` : ''}</em></span></label>`).join('')}</div>
+    <button class="btn ancho">Guardar</button></form>`, { titulo: m.nombre, clase: 'alta' });
+  $('form', h.el).onsubmit = (ev) => {
+    ev.preventDefault();
+    const sel = new Set(new FormData(ev.target).getAll('p'));
+    let n = 0;
+    for (const p of ps) {
+      const q = planta(p.id); const r = q.recordatorios.riego ||= { on: true, ultimo: hoy() };
+      if (sel.has(q.id)) { if (r.modo !== id || r.cada) { r.modo = id; r.cada = null; guardarPlanta(q); } n++; }
+      else if (r.modo === id) { delete r.modo; guardarPlanta(q); }
+    }
+    h.cerrar(); aviso(`${n} ${n === 1 ? 'planta usa' : 'plantas usan'} «${m.nombre}»`); repintar();
+  };
+}
+
 rutas.ajustes = () => {
   const a = ajustesTema();
   const pr = prefs();
   const ciudad = store.get('ciudad', null);
   const propias = store.get('especiesPropias', []);
   const vieja = coleccionLocal();
+  const corregidas = cat.especies.filter((e) => e.pautaEditada);
   const ejemplo = especie('aeonium-canariense') || cat.especies[0];
   return {
     html: `${cabDetalle('Ajustes')}<div class="contenido ajustes">
@@ -69,9 +98,23 @@ rutas.ajustes = () => {
         ${segmentado('nombres', [['comun', 'Común primero'], ['cientifico', 'Científico primero']], pr.nombres === 'cientifico' ? 'cientifico' : 'comun')}
         <div class="ejemplo-nombre">${pr.nombres === 'cientifico' ? `<strong class="cient">${esc(ejemplo.cientifico)}</strong><em class="comun">${esc(ejemplo.nombre)}</em>` : `<strong>${esc(ejemplo.nombre)}</strong><em>${esc(ejemplo.cientifico)}</em>`}</div>
         <p class="sub">Se aplica a las tarjetas, listas, fichas y tareas. En tus plantas, el apodo pasa a segundo plano.</p>`)}
+      ${seccion('modos', 'regaderaLinea', 'Modos de riego', modosRiego().map((m) => esc(m.nombre)).join(' · '), `
+        <p>Cinco pautas de riego que puedes elegir en cualquier planta (en su riego o al añadirla). Si cambias un modo, se actualizan todas las plantas que lo usan. Toca cada mes para cambiarlo.</p>
+        <div class="leyenda-meses"><span><i class="m-N"></i>Normal</span><span><i class="m-R"></i>Reposo</span><span><i class="m-S"></i>Sin riego</span></div>
+        ${modosRiego().map((m, i) => {
+          const n = datos.plantas.filter((x) => x.recordatorios?.riego?.modo === m.id && !x.recordatorios.riego.cada).length;
+          return `<div class="modo-riego" data-modo-id="${m.id}">
+            <label class="modo-nombre"><span class="modo-num">${i + 1}</span><input name="nombre" value="${esc(m.nombre)}" maxlength="30" aria-label="Nombre del modo ${i + 1}"></label>
+            ${mesesSel('meses', m.meses)}
+            <div class="dos"><label>Normal: cada (días)<input type="number" name="rv" min="1" max="120" value="${m.rv}" inputmode="numeric"></label>
+              <label>Reposo: cada (días)<input type="number" name="ri" min="0" max="180" value="${m.ri}" inputmode="numeric"></label></div>
+            <div class="modo-pie"><span class="sub" data-modo-resumen>${resumenModo(m)}</span><button class="btn mini sec" data-asignar="${m.id}">${n ? `${n} ${n === 1 ? 'planta' : 'plantas'} · cambiar` : 'Asignar a plantas'}</button></div>
+          </div>`;
+        }).join('')}`)}
       ${seccion('catalogo', 'plantas', 'Mi catálogo', `${cat.especies.length} especies${propias.length ? ` · ${propias.length} tuyas` : ''}`, `
         <p>Si falta alguna especie, añádela aquí o pide que la sumen al catálogo fijo.</p>
         <button class="btn ancho" data-esp-mano>${ico('mas')} Añadir una especie</button>
+        ${corregidas.length ? `<p class="sub">Guías de riego y abono que has corregido (${corregidas.length}):</p><div class="lista-propias">${corregidas.map((e) => filaEspecie(e)).join('')}</div>` : '<p class="sub">Para corregir el riego y abono de una especie, abre su ficha y toca «Editar» en el calendario.</p>'}
         ${propias.length ? `<div class="lista-propias">${propias.map((e) => filaEspecie(especie(e.id) || e)).join('')}</div>
         <button class="btn-texto" data-exp-propias>${ico('descargar')} Exportar mis especies</button>` : ''}`)}
       ${seccion('tiempo', 'ubicacion', 'Ubicación para el tiempo', ciudad ? esc(ciudad.nombre) : 'Sin elegir', `
@@ -107,6 +150,15 @@ rutas.ajustes = () => {
         if (d) { if (d.open) abiertos.add(d.dataset.sec); else abiertos.delete(d.dataset.sec); }
       }, true);
       v.addEventListener('input', (e) => {
+        const md = e.target.closest('[data-modo-id]');
+        if (md && e.target.name) {
+          const x = { id: md.dataset.modoId };
+          if (e.target.name === 'nombre') x.nombre = e.target.value.trim() || 'Modo';
+          else x[e.target.name] = Math.max(e.target.name === 'rv' ? 1 : 0, Math.round(+e.target.value || 0));
+          guardarModoRiego(x);
+          $('[data-modo-resumen]', md).textContent = resumenModo(modosRiego().find((m) => m.id === x.id));
+          return;
+        }
         const r = e.target.dataset.r;
         if (r) {
           guardarTema({ [r]: +e.target.value });
@@ -128,6 +180,19 @@ rutas.ajustes = () => {
         if (t) { guardarTema({ [t]: e.target.checked }); actualizarResumenes(); }
       });
       v.addEventListener('click', async (e) => {
+        const mb = e.target.closest('[data-modo-id] [data-meses] button');
+        if (mb) {
+          const md = mb.closest('[data-modo-id]');
+          const m = modosRiego().find((x) => x.id === md.dataset.modoId);
+          const arr = [...m.meses]; const i = +mb.dataset.i;
+          arr[i] = { N: 'R', R: 'S', S: 'N' }[arr[i]] || 'N';
+          guardarModoRiego({ id: m.id, meses: arr.join('') });
+          mb.className = 'm-' + arr[i];
+          $('[data-modo-resumen]', md).textContent = resumenModo({ ...m, meses: arr.join('') });
+          return;
+        }
+        const as = e.target.closest('[data-asignar]');
+        if (as) { asignarModo(as.dataset.asignar); return; }
         const seg = e.target.closest('[data-seg] button');
         if (seg) {
           const k = seg.closest('[data-seg]').dataset.seg;
@@ -307,6 +372,7 @@ async function exportarCopia() {
     plantas: datos.plantas, sitios: datos.sitios, favoritos: datos.favoritos,
     especiesPropias: store.get('especiesPropias', []), ciudad: store.get('ciudad', null), fotos: f,
     prefs: store.get('prefs', {}), tema: { ...store.get('tema', {}), fotoFondo: null }, fotoEsp: store.get('fotoEsp', {}),
+    modosRiego: store.get('modosRiego', []), pautasEsp: store.get('pautasEsp', {}),
   };
   descargar(new Blob([JSON.stringify(copia)], { type: 'application/json' }), `plantitus-pro-${hoy()}.json`);
   aviso('Copia exportada');
@@ -332,6 +398,8 @@ async function importarCopia() {
     if (c.ciudad) store.set('ciudad', c.ciudad);
     if (c.prefs) store.set('prefs', c.prefs);
     if (c.fotoEsp) store.set('fotoEsp', c.fotoEsp);
+    if (c.modosRiego) store.set('modosRiego', c.modosRiego);
+    if (c.pautasEsp) store.set('pautasEsp', c.pautasEsp);
     if (c.tema) guardarTema(c.tema);
     for (const [k, b64] of Object.entries(c.fotos || {})) {
       const bin = atob(b64); const u = new Uint8Array(bin.length);

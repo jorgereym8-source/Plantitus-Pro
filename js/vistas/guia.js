@@ -44,7 +44,8 @@ export function guiaEspecie(e, { compacta = false } = {}) {
     ${tox ? `<p class="etiqueta-tox">${ico('alerta')} Tóxica para perros y gatos si la mordisquean.</p>` : `<p class="etiqueta-ok">${ico('check')} No se considera tóxica para mascotas.</p>`}
     ${e.tags.includes('inv') ? `<p class="etiqueta-tox">${ico('alerta')} Invasora en Canarias: no la plantes en el campo ni tires restos.</p>` : ''}
   </div>` : ''}
-  <section class="tarjeta"><h3>${ico('calendario', 'verde')} Calendario de riego y abono</h3>${calendarioRiego(e)}</section>
+  <section class="tarjeta"><h3>${ico('calendario', 'verde')} Calendario de riego y abono${e.id && !compacta ? `<button class="btn-texto editar-pauta" data-editar-pauta="${esc(e.id)}">${ico('editar')} Editar</button>` : ''}</h3>${calendarioRiego(e)}
+    ${e.pautaEditada ? '<p class="sub">Pauta corregida por ti. Se aplica a todas tus plantas de esta especie que siguen la guía.</p>' : ''}</section>
   <section class="tarjeta guia">
     <h3>${ico('regaderaLinea', 'azul')} Riego</h3><p>${esc(g.riegoTxt)}</p>
     <h3>${LUZ_ICONO[e.luz]} Luz</h3><p>${esc(textoLuz(e))}</p>

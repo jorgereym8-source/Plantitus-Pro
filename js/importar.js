@@ -103,7 +103,7 @@ export async function importarColeccion(col, fotosExternas = null) {
       id: uid(), origenPlantitus: p.id,
       nombre: p.apodo || p.nombre || e?.nombre || 'Mi planta',
       especie: e?.id || null, cientifico: e?.cientifico || p.catalogo || '',
-      sitio: sitioPorNombre(p.zona), notas, foto: fotoId,
+      sitio: sitioPorNombre(p.zona), notas, foto: fotoId, fotos: fotoId ? [{ id: fotoId, fecha: p.desde || hoy() }] : [], cantidad: 1,
       creada: p.desde || p.creada || hoy(),
       recordatorios: recs,
       historial: hist

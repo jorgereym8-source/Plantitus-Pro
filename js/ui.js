@@ -1,5 +1,5 @@
 /* Navegación, cabeceras, hojas (sheets), avisos y componentes comunes. */
-import { $, $$, esc, activarImagenes, especie, grupo, cat, intervaloTxt, sitio, esFavorito, alternarFavorito, origenTxt, nombres, nombresPlanta } from './core.js';
+import { $, $$, esc, activarImagenes, especie, grupo, cat, intervaloTxt, sitio, esFavorito, alternarFavorito, origenTxt, nombres, nombresPlanta, cantidad } from './core.js';
 import { ico } from './iconos.js';
 
 export const rutas = {};
@@ -160,7 +160,7 @@ export function tarjetaPlanta(p) {
   const e = especie(p.especie);
   const s = sitio(p.sitio);
   return `<article class="tarjeta-planta" data-planta="${esc(p.id)}">
-    <a class="foto" href="#/planta/${esc(p.id)}" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(e?.cientifico || p.cientifico || '')}"></a>
+    <a class="foto" href="#/planta/${esc(p.id)}" ${p.foto ? `data-foto="${esc(p.foto)}"` : ''} data-wiki="${esc(e?.cientifico || p.cientifico || '')}">${cantidad(p) > 1 ? `<span class="n-ejemplares">× ${cantidad(p)}</span>` : ''}</a>
     <a class="txt" href="#/planta/${esc(p.id)}">
       ${nomHTML(nombresPlanta(p))}
       <span class="meta">${ico('ubicacion')} ${esc(s?.nombre || 'Sin sitio')}</span>

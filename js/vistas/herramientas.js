@@ -1,5 +1,5 @@
 /* Pestaña Herramientas: calculador de riego, medidor de luz, comprobación de maceta, cursos y remedios. */
-import { $, esc, cat, especie, datos, planta, sitio, intervaloRiego, hoy, guardarPlanta, sumar, fechaLarga, vencimiento, nombres, nombrePlanta, pauta } from '../core.js';
+import { $, esc, cat, especie, datos, planta, sitio, intervaloRiego, hoy, guardarPlanta, sumar, fechaLarga, vencimiento, nombres, nombrePlanta, pauta, cantidad } from '../core.js';
 import { REMEDIOS, NIVELES_LUZ } from '../contenido.js';
 import { rutas, aviso, cabRaiz, cabDetalle, segmentado, tarjetaEspecie, nomPrincipal, repintar, ico, LUZ_ICONO } from '../ui.js';
 import { guiaEspecie } from './guia.js';
@@ -82,12 +82,14 @@ function calcRiego() {
   const plantas = datos.plantas;
   const p = calc.plantaId ? planta(calc.plantaId) : null;
   const e = p ? especie(p.especie) : null;
+  const pa = p ? pauta(p) : null;
   const g = e?.grupo || calc.grupo;
+  const n = p ? cantidad(p) : 1;
   if (p && sitio(p.sitio)) calc.lugar = sitio(p.sitio).exterior ? 'ext' : 'int';
   const r = calc.diam / 2;
   const volumen = Math.PI * r * r * calc.diam * 0.85 / 1000; // litros, maceta con altura ≈ diámetro
   let ml = Math.round(volumen * (FRACCION[g] ?? 0.25) * 1000 / 10) * 10;
-  const base = e ? intervaloRiego(e) : ({ cactus: 14, suculenta: 10, interior: 7, tropical: 5, helecho: 4, aromatica: 3, huerto: 2 }[g] || 7);
+  const base = pa ? intervaloRiego(pa) : ({ cactus: 14, suculenta: 10, interior: 7, tropical: 5, helecho: 4, aromatica: 3, huerto: 2 }[g] || 7);
   let dias = base;
   if (dias) {
     if (calc.material === 'barro') dias *= 0.85;
@@ -104,11 +106,11 @@ function calcRiego() {
       <div class="campo"><span>Material</span>${segmentado('material', [['plastico', 'Plástico o cerámica'], ['barro', 'Barro']], calc.material)}</div>
       ${!p || !sitio(p.sitio) ? `<div class="campo"><span>Lugar</span>${segmentado('lugar', [['int', 'Interior'], ['ext', 'Exterior']], calc.lugar)}</div>` : ''}
       <section class="resultado-calc">
-        <div><span>${ico('gota', 'azul')}</span><strong>${g === 'tillandsia' ? 'Remojo' : ml >= 1000 ? (ml / 1000).toFixed(1).replace('.', ',') + ' l' : ml + ' ml'}</strong><em>por riego</em></div>
+        <div><span>${ico('gota', 'azul')}</span><strong>${g === 'tillandsia' ? 'Remojo' : ml >= 1000 ? (ml / 1000).toFixed(1).replace('.', ',') + ' l' : ml + ' ml'}</strong><em>${n > 1 ? `por planta · ${(ml * n) >= 1000 ? ((ml * n) / 1000).toFixed(1).replace('.', ',') + ' l' : ml * n + ' ml'} las ${n}` : 'por riego'}</em></div>
         <div><span>${ico('calendario', 'verde')}</span><strong>${dias ? `Cada ${dias} días` : 'Sin riego'}</strong><em>en ${['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'][new Date().getMonth()]}</em></div>
       </section>
       <p class="sub">${esc(cat.grupos[g]?.riegoTxt || '')} Es una estimación: comprueba siempre con el dedo o un palillo que el sustrato está seco antes de volver a regar.</p>
-      ${p && dias && p.recordatorios.riego.on && !p.recordatorios.riego.cada && e && dias !== intervaloRiego(e) ? `<button class="btn sec ancho" data-aplicar="${dias}">Usar cada ${dias} días en ${esc(nombrePlanta(p))}</button>` : ''}
+      ${p && dias && p.recordatorios.riego.on && !p.recordatorios.riego.cada && pa && dias !== intervaloRiego(pa) ? `<button class="btn sec ancho" data-aplicar="${dias}">Usar cada ${dias} días en ${esc(nombrePlanta(p))}</button>` : ''}
     </div>`,
     despues(v) {
       v.addEventListener('input', (ev) => {

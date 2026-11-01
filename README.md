@@ -18,11 +18,18 @@ Web app para iPhone de cuidado de plantas, inspirada en **Plant Parent**: record
 | **Diagnóstico** | **Buscador por síntomas**: escribes lo que ves o marcas síntomas por partes (hojas, tallo, raíces y tierra, flores, frutos, planta entera), eliges la planta y lo que ha pasado (riego, frío, sol…), y ordena los problemas de más a menos probable. Guía de 82 problemas con cómo reconocerlo, por qué pasa, qué hacer, cómo evitarlo, con qué se confunde y remedios caseros. |
 | **Encontrar planta** | Buscador, buscador de plantas por luz, sitio, dificultad y tipo, colecciones («Mejoran el sueño», «Flora canaria», «Seguras con mascotas»…) y la selección del mes. Corazón para favoritas. |
 | **Herramientas** | Calculador de riego, medidor de luz, comprobación de maceta, qué hacer este mes, cursos de cuidados de tus plantas y remedios caseros. |
-| **Mis plantas** | Tus plantas y tus **Sitios**. Cada ficha tiene cuidados, historial, guía de la especie y acceso directo al buscador por síntomas. |
+| **Mis plantas** | Tus plantas y tus **Sitios**. Cada planta puede tener **varias fotos** (la primera es la portada) y un **número de ejemplares** si tienes varias iguales en el mismo sitio. La ficha tiene cuidados, el calendario de riego y abono por meses, historial, guía de la especie y acceso al buscador por síntomas. |
 
 ## Cómo se calculan los riegos
 
-Cada especie tiene un intervalo de riego en temporada, otro en reposo y una marca por mes: normal, reposo o sin riego. Así, un *Aeonium* se riega en invierno y descansa en verano, y una *Lophophora* no se riega en invierno. El siguiente riego es el último anotado más el intervalo del mes; si cae en un mes sin riego, pasa al primer día del siguiente mes con riego. El abono funciona igual, en semanas y solo en los meses de abono. En cada planta puedes cambiar a una frecuencia fija.
+Cada especie tiene un intervalo de riego en temporada, otro en reposo y una marca por mes: normal, reposo o sin riego. Así, un *Aeonium* se riega en invierno y descansa en verano, y una *Lophophora* no se riega en invierno. El siguiente riego es el último anotado más el intervalo del mes; si cae en un mes sin riego, pasa al primer día del siguiente mes con riego. El abono funciona igual, en semanas y solo en los meses de abono. Cada planta puede regarse de cuatro formas:
+
+- **Según la especie**: la pauta de la guía.
+- **Con un modo de riego**: cinco modos que configuras en *Ajustes → Modos de riego* (nombre, días en temporada, días en reposo y meses) y eliges al añadir la planta o en su riego. Desde Ajustes puedes asignar un modo a varias plantas de golpe; si cambias el modo, cambian todas.
+- **Con su pauta propia**: solo para esa planta.
+- **Con frecuencia fija**: cada X días todo el año.
+
+**Corregir la guía:** en el calendario de riego y abono de una especie o de una planta, *Editar* abre la pauta por meses. Se puede guardar para toda la especie (corrige la guía y la automatización de todas las plantas que la siguen) o solo para esa planta, y volver a la original cuando quieras.
 
 ## Personalización
 

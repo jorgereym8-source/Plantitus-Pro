@@ -1,7 +1,7 @@
 /* Núcleo de Plantitus Pro: datos, fechas, tareas, fotos, Wikipedia, tiempo e IA. */
 import { TIPOS, SITIOS_INICIALES } from './contenido.js';
 
-export const VERSION = '1.1.0';
+export const VERSION = '1.2.0';
 
 /* ---------- utilidades ---------- */
 export const $ = (s, el = document) => el.querySelector(s);
@@ -34,7 +34,7 @@ export function fechaLarga(s) {
   if (dd === 0) return 'Hoy';
   if (dd === 1) return 'Mañana';
   if (dd === -1) return 'Ayer';
-  return `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}`;
+  return `${DIAS[d.getDay()]} ${d.getDate()} de ${MESES[d.getMonth()]}${d.getFullYear() !== new Date().getFullYear() ? ` de ${d.getFullYear()}` : ''}`;
 }
 export function haceTxt(s) {
   const n = difDias(s, hoy());
@@ -64,8 +64,54 @@ export function refrescarCatalogo() {
   const propias = store.get('especiesPropias', []);
   const base = cat.especies.filter((e) => !e.propia);
   cat.especies = [...base, ...propias.map((e) => ({ ...e, propia: true }))];
+  // Pautas de riego y abono que el usuario ha corregido para una especie
+  const ov = store.get('pautasEsp', {});
+  for (const e of cat.especies) {
+    e.guiaOriginal ||= { rv: e.rv, ri: e.ri, meses: e.meses, abono: e.abono, abonoMeses: e.abonoMeses };
+    Object.assign(e, e.guiaOriginal, ov[e.id] || {});
+    e.pautaEditada = !!ov[e.id];
+  }
   cat.porId = new Map(cat.especies.map((e) => [e.id, e]));
 }
+/* Guarda (o borra, con null) la pauta corregida de una especie. */
+export function guardarPautaEspecie(id, pa) {
+  const ov = store.get('pautasEsp', {});
+  if (pa) ov[id] = { rv: pa.rv, ri: pa.ri, meses: pa.meses, abono: pa.abono, abonoMeses: pa.abonoMeses };
+  else delete ov[id];
+  store.set('pautasEsp', ov);
+  refrescarCatalogo();
+}
+
+/* ---------- modos de riego (se configuran en Ajustes) ---------- */
+export const MODOS_DEF = [
+  { id: 'm1', nombre: 'Cactus al sol', rv: 10, ri: 25, meses: 'RRNNNNNNNNRR' },
+  { id: 'm2', nombre: 'Cactus delicados', rv: 15, ri: 0, meses: 'SSRNNNNNNRSS' },
+  { id: 'm3', nombre: 'Crasas de invierno', rv: 8, ri: 20, meses: 'NNNNNRRRNNNN' },
+  { id: 'm4', nombre: 'Interior', rv: 7, ri: 12, meses: 'RRNNNNNNNNRR' },
+  { id: 'm5', nombre: 'Tropicales', rv: 4, ri: 7, meses: 'RRNNNNNNNNRR' },
+];
+export function modosRiego() {
+  const g = store.get('modosRiego', []);
+  return MODOS_DEF.map((d) => ({ ...d, ...(g.find((x) => x.id === d.id) || {}) }));
+}
+export const modoRiego = (id) => (id ? modosRiego().find((m) => m.id === id) || null : null);
+export function guardarModoRiego(m) {
+  const l = modosRiego().map((x) => (x.id === m.id ? { ...x, ...m } : x));
+  store.set('modosRiego', l);
+}
+
+/* ---------- fotos y ejemplares de una planta ---------- */
+/* Fotos de una planta: [{ id, fecha }]; la primera es la portada (p.foto). */
+export function fotosDe(p) {
+  if (Array.isArray(p?.fotos) && p.fotos.length) return p.fotos;
+  return p?.foto ? [{ id: p.foto, fecha: p.creada || hoy() }] : [];
+}
+export function ponerFotos(p, lista) {
+  p.fotos = lista;
+  p.foto = lista[0]?.id || null;
+  return p;
+}
+export const cantidad = (p) => Math.max(1, Math.round(+p?.cantidad || 1));
 export const especie = (id) => (id ? cat.porId.get(id) : null);
 /* Preferencias de la app (nombre científico primero, etc.). */
 export const prefs = () => store.get('prefs', {});
@@ -142,7 +188,7 @@ export function guardarPlanta(p) {
 export function borrarPlanta(id) {
   const p = planta(id);
   datos.plantas = datos.plantas.filter((x) => x.id !== id);
-  if (p?.foto) fotos.borrar(p.foto);
+  for (const f of fotosDe(p)) fotos.borrar(f.id);
 }
 export function esFavorito(id) { return datos.favoritos.includes(id); }
 export function alternarFavorito(id) {
@@ -181,16 +227,30 @@ export function intervaloRiego(e, fecha = hoy()) {
  * traiga una propia (p. ej. importada de Plantitus) en recordatorios.*.pauta. */
 export function pauta(p) {
   const e = especie(p?.especie);
-  const r = p?.recordatorios?.riego?.pauta, a = p?.recordatorios?.abono?.pauta;
+  const rr = p?.recordatorios?.riego || {};
+  const modo = modoRiego(rr.modo);
+  const r = modo ? { rv: modo.rv, ri: modo.ri, meses: modo.meses } : rr.pauta;
+  const a = p?.recordatorios?.abono?.pauta;
   if (!r && !a) return e;
   return { rv: 7, ri: 14, meses: 'RRNNNNNNNNRR', abono: 4, abonoMeses: '001111111000', ...(e || {}), ...(r || {}), ...(a || {}) };
+}
+/* De dónde sale la pauta de riego de una planta, en palabras. */
+export function origenRiego(p) {
+  const rr = p?.recordatorios?.riego || {};
+  if (rr.cada) return `Frecuencia fija: cada ${rr.cada} días`;
+  const m = modoRiego(rr.modo);
+  if (m) return `Modo «${m.nombre}»`;
+  if (rr.pauta) return 'Pauta propia de esta planta';
+  if (especie(p?.especie)?.pautaEditada) return 'Guía de la especie corregida por ti';
+  return 'Según la guía de la especie';
 }
 export function intervaloTxt(p) {
   const r = p.recordatorios?.riego;
   if (!r?.on) return 'Sin recordatorio de riego';
   if (r.cada) return `Cada ${r.cada} días`;
   const n = intervaloRiego(pauta(p));
-  return n ? `Cada ${n} días` : 'Sin riego este mes';
+  const m = modoRiego(r.modo);
+  return (n ? `Cada ${n} días` : 'Sin riego este mes') + (m ? ` · ${m.nombre}` : '');
 }
 function primerDiaMesSiguiente(s, ok) {
   let d = parse(s);
@@ -341,6 +401,15 @@ export async function reducirImagen(file, lado = 1200, calidad = 0.82) {
 }
 export const blobABase64 = (b) => new Promise((ok) => { const r = new FileReader(); r.onload = () => ok(String(r.result).split(',')[1]); r.readAsDataURL(b); });
 /* Abre la cámara o la galería y devuelve el archivo elegido. */
+export function elegirFotos() {
+  return new Promise((ok) => {
+    const i = document.createElement('input');
+    i.type = 'file'; i.accept = 'image/*'; i.multiple = true;
+    i.onchange = () => ok([...(i.files || [])]);
+    i.addEventListener('cancel', () => ok([]));
+    i.click();
+  });
+}
 export function elegirFoto({ camara = false } = {}) {
   return new Promise((ok) => {
     const i = document.createElement('input');
